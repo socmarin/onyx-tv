@@ -1,8 +1,8 @@
 # Onyx TV Launcher
 
-**Onyx** is a pure-dark, distraction-free Android TV / Google TV launcher and theme fork based on [Gathin23/cleanyourtv](https://github.com/Gathin23/cleanyourtv).
+[English](README.md) · [Español](README.es.md)
 
-![Onyx TV Navigation](themes/onyx/preview.gif)
+**Onyx** is a pure-dark, distraction-free Android TV / Google TV launcher and theme fork based on [Gathin23/cleanyourtv](https://github.com/Gathin23/cleanyourtv).
 
 ![Onyx TV Home](themes/onyx/screenshot.jpg)
 
@@ -14,13 +14,15 @@
 - **Icon-Only Top Toolbar:** Floating icon-only controls (App Library, Inputs, Settings) without extra pills or clutter.
 - **Multi-Language:** Inherits full 30+ language support from CleanYourTV (English, Spanish, German, French, Italian, Portuguese, Dutch, Polish, Ukrainian, Turkish, Japanese, Chinese, etc.).
 
+![Onyx TV Navigation](themes/onyx/preview.gif)
+
 ## Installation (Android 8.0+ / API 26+)
 
 ### Option 1: Prebuilt APK (Recommended)
 
 1. Download `app-release.apk` from the [Latest Release](../../releases/latest).
 2. Install it on your TV via ADB (`adb install -r app-release.apk`), or sideload it directly on the TV using a file manager / LocalSend / USB drive.
-3. Apply the Onyx theme configuration from this repo (see step 2 below), or configure the launcher directly from **Settings → Launcher settings** on your TV.
+3. Apply the Onyx theme configuration from this repo (see below), or configure the launcher directly from **Settings → Launcher settings** on your TV.
 
 ### Option 2: Build & Install from Source
 
