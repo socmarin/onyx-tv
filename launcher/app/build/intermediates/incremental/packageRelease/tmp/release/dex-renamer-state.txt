@@ -1,0 +1,4 @@
+#Fri Nov 13 08:26:11 CET 2026
+base.0=/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/build/intermediates/dex/release/minifyReleaseWithR8/classes.dex
+renamed.0=classes.dex
+path.0=classes.dex

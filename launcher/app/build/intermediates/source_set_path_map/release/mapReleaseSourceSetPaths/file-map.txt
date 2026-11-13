@@ -1,0 +1,14 @@
+com.gathin.tvhome.app-pngs-0 /Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/build/generated/res/pngs/release
+com.gathin.tvhome.app-resValues-1 /Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/build/generated/res/resValues/release
+com.gathin.tvhome.app-packageReleaseResources-2 /Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/build/intermediates/incremental/release/packageReleaseResources/merged.dir
+com.gathin.tvhome.app-packageReleaseResources-3 /Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/build/intermediates/incremental/release/packageReleaseResources/stripped.dir
+com.gathin.tvhome.app-merged-not-compiled-resources-4 /Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/build/intermediates/merged-not-compiled-resources/release
+com.gathin.tvhome.app-release-5 /Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/build/intermediates/merged_res/release/mergeReleaseResources
+com.gathin.tvhome.app-main-6 /Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/res
+com.gathin.tvhome.app-release-7 /Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/release/res
+com.gathin.tvhome.app-core-1.7.0-8 /Users/marin/.gradle/caches/8.9/transforms/3afe7fa58a47c7b182ae0caccac05374/transformed/core-1.7.0/res
+com.gathin.tvhome.app-recyclerview-1.3.2-9 /Users/marin/.gradle/caches/8.9/transforms/62454a3cca38d4b1256266a06e5b4e28/transformed/recyclerview-1.3.2/res
+com.gathin.tvhome.app-customview-poolingcontainer-1.0.0-10 /Users/marin/.gradle/caches/8.9/transforms/70a4404f78ff4408ba72cdeb9a417244/transformed/customview-poolingcontainer-1.0.0/res
+com.gathin.tvhome.app-core-ktx-1.5.0-11 /Users/marin/.gradle/caches/8.9/transforms/9ff1fbd0aec35f5246851cd69fdfa9dd/transformed/core-ktx-1.5.0/res
+com.gathin.tvhome.app-annotation-experimental-1.1.0-12 /Users/marin/.gradle/caches/8.9/transforms/cbf874f2032679cdc0e9758f5dc6ada9/transformed/annotation-experimental-1.1.0/res
+com.gathin.tvhome.app-lifecycle-runtime-2.3.1-13 /Users/marin/.gradle/caches/8.9/transforms/f1d82a6203e10e6412308c12e4bcd04c/transformed/lifecycle-runtime-2.3.1/res

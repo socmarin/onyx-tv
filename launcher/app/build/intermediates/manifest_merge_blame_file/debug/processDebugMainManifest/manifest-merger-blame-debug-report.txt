@@ -1,0 +1,536 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.gathin.tvhome"
+4    android:versionCode="13"
+5    android:versionName="3.4" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="26"
+9        android:targetSdkVersion="34" />
+10
+11    <uses-feature
+11-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:5:5-87
+12        android:name="android.software.leanback"
+12-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:5:19-59
+13        android:required="false" />
+13-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:5:60-84
+14    <uses-feature
+14-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:6:5-90
+15        android:name="android.hardware.touchscreen"
+15-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:6:19-62
+16        android:required="false" />
+16-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:6:63-87
+17    <uses-feature
+17-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:7:5-83
+18        android:name="android.hardware.wifi"
+18-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:7:19-55
+19        android:required="false" />
+19-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:7:56-80
+20    <uses-feature
+20-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:8:5-91
+21        android:name="android.hardware.location.gps"
+21-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:8:19-63
+22        android:required="false" />
+22-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:8:64-88
+23
+24    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+24-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:10:5-79
+24-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:10:22-76
+25    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+25-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:11:5-76
+25-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:11:22-73
+26    <!--
+27         Needed since Android 10 to read the Wi-Fi network name for the network pill. Never requested at
+28         runtime: build-and-install grants it with pm grant, so lint's Android 12 "ask for COARSE with
+29         FINE" rule does not apply here.
+30    -->
+31    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+31-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:15:5-16:45
+31-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:15:22-76
+32    <!--
+33         Puts the remote's accessibility helpers back after a force stop of this app took them off the enabled
+34         list (ServiceRepair). Granted with pm grant by build-and-install when a helper is enabled.
+35    -->
+36    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
+36-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:19:5-20:47
+36-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:19:22-77
+37    <!--
+38         YaOS (Yandex TV OS): HDMI, AV and the tuner all play in com.yandex.tv.live, whose activities require
+39         this permission (protection level normal, so it is granted at install). Ignored on other TVs.
+40    -->
+41    <uses-permission android:name="yandex.tv.permission.ACCESS_TV_SOURCE" />
+41-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:23:5-77
+41-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:23:22-74
+42
+43    <!--
+44         Android 11+ package visibility: lets the launcher list the TV apps it shows as tiles, and the
+45         apps that declare a module card (docs/specs/card.md).
+46    -->
+47    <queries>
+47-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:27:5-71:15
+48
+49        <!-- The standard settings handlers, so package visibility doesn't hide them and send the pills to a vendor fallback by mistake. -->
+50        <intent>
+50-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:29:9-31:18
+51            <action android:name="android.settings.SETTINGS" />
+51-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:30:13-64
+51-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:30:21-61
+52        </intent>
+53        <intent>
+53-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:32:9-34:18
+54            <action android:name="android.settings.WIFI_SETTINGS" />
+54-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:33:13-69
+54-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:33:21-66
+55        </intent>
+56        <intent>
+56-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:35:9-37:18
+57            <action android:name="android.settings.DISPLAY_SETTINGS" />
+57-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:36:13-72
+57-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:36:21-69
+58        </intent>
+59        <intent>
+59-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:38:9-40:18
+60            <action android:name="android.settings.MANAGE_APPLICATIONS_SETTINGS" />
+60-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:39:13-84
+60-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:39:21-81
+61        </intent>
+62        <!-- The tile menu and the app library offer App info only where this resolves (SystemSettings.appInfo). -->
+63        <intent>
+63-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:42:9-45:18
+64            <action android:name="android.settings.APPLICATION_DETAILS_SETTINGS" />
+64-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:43:13-84
+64-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:43:21-81
+65
+66            <data android:scheme="package" />
+66-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:44:13-46
+66-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:44:19-43
+67        </intent>
+68        <intent>
+68-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:46:9-49:18
+69            <action android:name="android.intent.action.MAIN" />
+69-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:47:13-65
+69-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:47:21-62
+70
+71            <category android:name="android.intent.category.LAUNCHER" />
+71-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:48:13-73
+71-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:48:23-70
+72        </intent>
+73        <intent>
+73-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:50:9-53:18
+74            <action android:name="android.intent.action.MAIN" />
+74-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:47:13-65
+74-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:47:21-62
+75
+76            <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+76-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:52:13-82
+76-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:52:23-79
+77        </intent>
+78        <intent>
+78-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:54:9-57:18
+79            <action android:name="android.intent.action.MAIN" />
+79-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:47:13-65
+79-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:47:21-62
+80
+81            <category android:name="com.gathin.tvhome.category.DOCK_CARD" />
+81-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:56:13-77
+81-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:56:23-74
+82        </intent>
+83        <!-- stock_home_redirect: HomeKeyService looks up the stock launcher's HOME activity. -->
+84        <intent>
+84-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:59:9-62:18
+85            <action android:name="android.intent.action.MAIN" />
+85-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:47:13-65
+85-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:47:21-62
+86
+87            <category android:name="android.intent.category.HOME" />
+87-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:61:13-69
+87-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:61:23-66
+88        </intent>
+89        <!--
+90             China-market MIUI TV firmware: the Settings and Wi-Fi pills fall back to Xiaomi's settings app.
+91             Fire TV: the real settings menu lives in the stock launcher (see settings_fallback_components).
+92        -->
+93        <package android:name="com.xiaomi.mitv.settings" />
+93-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:65:9-60
+93-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:65:18-57
+94        <package android:name="com.tcl.settings" />
+94-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:66:9-52
+94-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:66:18-49
+95        <package android:name="com.amazon.tv.launcher" />
+95-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:67:9-58
+95-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:67:18-55
+96        <!-- Coocaa OS sources for the Inputs menu (coocaa_sources); see CoocaaSources. -->
+97        <provider android:authorities="com.skyworth.tv.provider" />
+97-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:69:9-68
+97-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:69:19-65
+98        <provider android:authorities="com.skyworth.tv.sdk.provider" />
+98-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:69:9-68
+98-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:69:19-65
+99    </queries>
+100
+101    <application
+101-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:73:5-255:19
+102        android:allowBackup="false"
+102-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:78:9-36
+103        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+103-->[androidx.core:core:1.7.0] /Users/marin/.gradle/caches/8.9/transforms/3afe7fa58a47c7b182ae0caccac05374/transformed/core-1.7.0/AndroidManifest.xml:24:18-86
+104        android:banner="@drawable/banner"
+104-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:76:9-42
+105        android:debuggable="true"
+106        android:extractNativeLibs="false"
+107        android:icon="@mipmap/ic_launcher"
+107-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:75:9-43
+108        android:label="@string/app_name"
+108-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:74:9-41
+109        android:localeConfig="@xml/locales_config"
+109-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:79:9-51
+110        android:theme="@style/Theme.TvHome" >
+110-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:77:9-44
+111        <activity
+111-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:81:9-107:20
+112            android:name="com.gathin.tvhome.MainActivity"
+112-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:82:13-41
+113            android:clearTaskOnLaunch="true"
+113-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:87:13-45
+114            android:configChanges="orientation|screenSize|keyboard|keyboardHidden|uiMode"
+114-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:88:13-90
+115            android:excludeFromRecents="true"
+115-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:86:13-46
+116            android:exported="true"
+116-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:83:13-36
+117            android:launchMode="singleTask"
+117-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:84:13-44
+118            android:screenOrientation="landscape"
+118-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:89:13-50
+119            android:stateNotNeeded="true" >
+119-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:85:13-42
+120
+121            <!--
+122                 CVTE firmware (ro.CVT_EN_COMMON_HOME_INTENT=1) sends the Home key and boot as MAIN + HOME +
+123                 COMMON_HOME, which only matches a filter that lists both (#1201). In this one filter, not a second
+124                 one: a plain HOME intent still matches it, and a second filter could list this activity twice.
+125            -->
+126            <intent-filter>
+126-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:93:13-101:29
+127                <action android:name="android.intent.action.MAIN" />
+127-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:47:13-65
+127-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:47:21-62
+128
+129                <category android:name="android.intent.category.HOME" />
+129-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:61:13-69
+129-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:61:23-66
+130                <category android:name="android.intent.category.COMMON_HOME" />
+130-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:96:17-80
+130-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:96:27-77
+131                <category android:name="android.intent.category.DEFAULT" />
+131-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:97:17-76
+131-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:97:27-73
+132                <!--
+133                     ColorOS TV: boot only promotes a HOME that declares this category.
+134                     docs/devices/oppo-k9-55-oppocnm632.md (prior art: aerial-tv oppo-coloros-tv.md).
+135                -->
+136                <category android:name="com.heytap.tv.launcher.category.MODERN_HOME" />
+136-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:100:17-88
+136-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:100:27-85
+137            </intent-filter>
+138            <!-- Listed in the TV's own app list, so it can be opened from the stock home screen too. -->
+139            <intent-filter>
+139-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:103:13-106:29
+140                <action android:name="android.intent.action.MAIN" />
+140-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:47:13-65
+140-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:47:21-62
+141
+142                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+142-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:52:13-82
+142-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:52:23-79
+143            </intent-filter>
+144        </activity>
+145        <activity
+145-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:109:9-113:53
+146            android:name="com.gathin.tvhome.LauncherSettingsActivity"
+146-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:110:13-53
+147            android:excludeFromRecents="true"
+147-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:112:13-46
+148            android:exported="false"
+148-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:111:13-37
+149            android:screenOrientation="landscape" />
+149-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:113:13-50
+150        <!--
+151             The system input switcher (com.android.tv.action.VIEW_INPUTS), which is what the remote's Input
+152             button becomes through the TV's Live TV app or InputKeyService. Disabled here and switched on by
+153             MainActivity only while handle_view_inputs is true (config.xml or a theme), for sets whose stock
+154             launcher was the only handler of the action (Hisense huangshan, Android TV 10): kept off, a TV with
+155             its own input picker never sees a second candidate and a chooser.
+156        -->
+157        <activity
+157-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:119:9-130:20
+158            android:name="com.gathin.tvhome.InputsRequestActivity"
+158-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:120:13-50
+159            android:enabled="false"
+159-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:122:13-36
+160            android:excludeFromRecents="true"
+160-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:123:13-46
+161            android:exported="true"
+161-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:121:13-36
+162            android:noHistory="true"
+162-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:124:13-37
+163            android:theme="@android:style/Theme.NoDisplay" >
+163-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:125:13-59
+164            <intent-filter>
+164-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:126:13-129:29
+165                <action android:name="com.android.tv.action.VIEW_INPUTS" />
+165-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:127:17-76
+165-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:127:25-73
+166
+167                <category android:name="android.intent.category.DEFAULT" />
+167-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:97:17-76
+167-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:97:27-73
+168            </intent-filter>
+169        </activity>
+170        <!--
+171             Remote Settings button panel (settings_key_panel); own task so the app behind stays put.
+172             No screenOrientation: a translucent activity may not request one on Android 8.0 (API 26),
+173             which throws IllegalStateException in onCreate (#1122); a TV is landscape anyway.
+174        -->
+175        <activity
+175-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:134:9-141:86
+176            android:name="com.gathin.tvhome.QuickSettingsActivity"
+176-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:135:13-50
+177            android:excludeFromRecents="true"
+177-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:139:13-46
+178            android:exported="false"
+178-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:136:13-37
+179            android:launchMode="singleTop"
+179-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:138:13-43
+180            android:noHistory="true"
+180-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:140:13-37
+181            android:taskAffinity=""
+181-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:137:13-36
+182            android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen" />
+182-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:141:13-83
+183        <activity
+183-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:142:9-147:51
+184            android:name="com.gathin.tvhome.HomeSettingsActivity"
+184-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:143:13-49
+185            android:excludeFromRecents="true"
+185-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:146:13-46
+186            android:exported="false"
+186-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:144:13-37
+187            android:taskAffinity=""
+187-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:145:13-36
+188            android:theme="@style/Theme.TvHome" />
+188-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:147:13-48
+189        <!--
+190             Home button for remotes that send KEYCODE_ALL_APPS (Xiaomi). Opt-in: HOME_KEY_SERVICE=1
+191             build-and-install.sh; see HomeKeyService.
+192        -->
+193        <service
+193-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:150:9-162:19
+194            android:name="com.gathin.tvhome.HomeKeyService"
+194-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:151:13-43
+195            android:directBootAware="true"
+195-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:153:13-43
+196            android:exported="true"
+196-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:154:13-36
+197            android:label="@string/home_key_name"
+197-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:152:13-50
+198            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" >
+198-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:155:13-79
+199            <intent-filter>
+199-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:156:13-158:29
+200                <action android:name="android.accessibilityservice.AccessibilityService" />
+200-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:157:17-92
+200-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:157:25-89
+201            </intent-filter>
+202
+203            <meta-data
+203-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:159:13-161:60
+204                android:name="android.accessibilityservice"
+204-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:160:17-60
+205                android:resource="@xml/home_key_service" />
+205-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:161:17-57
+206        </service>
+207
+208        <!--
+209             market://launch?id=<package>: package-name app launches from the Android TV Remote service
+210             (Home Assistant android_tv_remote), normally served by the stock launcher.
+211        -->
+212        <activity
+212-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:166:9-178:20
+213            android:name="com.gathin.tvhome.AppLaunchActivity"
+213-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:167:13-46
+214            android:excludeFromRecents="true"
+214-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:169:13-46
+215            android:exported="true"
+215-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:168:13-36
+216            android:noHistory="true"
+216-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:170:13-37
+217            android:theme="@android:style/Theme.NoDisplay" >
+217-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:171:13-59
+218            <intent-filter>
+218-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:172:13-177:29
+219                <action android:name="android.intent.action.VIEW" />
+219-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:173:17-69
+219-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:173:25-66
+220
+221                <category android:name="android.intent.category.DEFAULT" />
+221-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:97:17-76
+221-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:97:27-73
+222                <category android:name="android.intent.category.BROWSABLE" />
+222-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:175:17-78
+222-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:175:27-75
+223
+224                <data
+224-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:44:13-46
+225                    android:host="launch"
+225-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:176:47-68
+226                    android:scheme="market" />
+226-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:44:19-43
+227            </intent-filter>
+228        </activity>
+229
+230        <!-- The same clock, started by Home itself after home_idle_clock_minutes without input. -->
+231        <activity
+231-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:181:9-186:80
+232            android:name="com.gathin.tvhome.ClockActivity"
+232-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:182:13-42
+233            android:excludeFromRecents="true"
+233-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:184:13-46
+234            android:exported="false"
+234-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:183:13-37
+235            android:noHistory="true"
+235-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:185:13-37
+236            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+236-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:186:13-77
+237
+238        <!--
+239             stock_home_redirect at boot: HomeKeyService opens this invisible activity once, so the screen behind
+240             it sends a window event when it closes (HomeKeyService.probeAtBoot).
+241        -->
+242        <activity
+242-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:190:9-196:75
+243            android:name="com.gathin.tvhome.ProbeActivity"
+243-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:191:13-42
+244            android:excludeFromRecents="true"
+244-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:193:13-46
+245            android:exported="false"
+245-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:192:13-37
+246            android:noHistory="true"
+246-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:194:13-37
+247            android:taskAffinity=""
+247-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:195:13-36
+248            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+248-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:196:13-72
+249
+250        <!--
+251             Screensaver: pick it in Settings, or `settings put secure screensaver_components
+252             com.gathin.tvhome/.ClockDream` over adb.
+253        -->
+254        <service
+254-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:200:9-209:19
+255            android:name="com.gathin.tvhome.ClockDream"
+255-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:201:13-39
+256            android:exported="true"
+256-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:203:13-36
+257            android:label="@string/dream_name"
+257-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:202:13-47
+258            android:permission="android.permission.BIND_DREAM_SERVICE" >
+258-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:204:13-71
+259            <intent-filter>
+259-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:205:13-208:29
+260                <action android:name="android.service.dreams.DreamService" />
+260-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:206:17-78
+260-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:206:25-75
+261
+262                <category android:name="android.intent.category.DEFAULT" />
+262-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:97:17-76
+262-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:97:27-73
+263            </intent-filter>
+264        </service>
+265
+266        <!--
+267             tools/theme.sh writes the theme through this where the shell can't reach Android/data;
+268             see ThemeProvider. WRITE_SECURE_SETTINGS: the adb shell has it, ordinary apps don't.
+269        -->
+270        <provider
+271            android:name="com.gathin.tvhome.ThemeProvider"
+271-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:214:13-42
+272            android:authorities="com.gathin.tvhome.theme"
+272-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:215:13-57
+273            android:exported="true"
+273-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:216:13-36
+274            android:permission="android.permission.WRITE_SECURE_SETTINGS" />
+274-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:217:13-74
+275
+276        <!--
+277         The remote's Input button (KEYCODE_TV or KEYCODE_TV_INPUT) opens the input switcher, and input_key_keycodes and
+278         app_keys (config.xml or a theme) bring back other remote buttons; see InputKeyService.
+279        -->
+280        <!--
+281             Bound again by the system after a force stop, which restarts Home on firmware that kills
+282             third-party apps (TCL tc8000_ay30a2). It reads no notification.
+283             cmd notification allow_listener com.gathin.tvhome/.GuardRevival
+284        -->
+285        <service
+285-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:224:9-233:19
+286            android:name="com.gathin.tvhome.GuardRevival"
+286-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:225:13-41
+287            android:directBootAware="true"
+287-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:226:13-43
+288            android:exported="true"
+288-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:227:13-36
+289            android:label="@string/home_key_name"
+289-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:228:13-50
+290            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" >
+290-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:229:13-87
+291            <intent-filter>
+291-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:230:13-232:29
+292                <action android:name="android.service.notification.NotificationListenerService" />
+292-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:231:17-99
+292-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:231:25-96
+293            </intent-filter>
+294        </service>
+295
+296        <receiver
+296-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:234:9-241:20
+297            android:name="com.gathin.tvhome.GuardConfig"
+297-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:235:13-40
+298            android:exported="true"
+298-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:236:13-36
+299            android:permission="android.permission.WRITE_SECURE_SETTINGS" >
+299-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:237:13-74
+300            <intent-filter>
+300-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:238:13-240:29
+301                <action android:name="com.gathin.tvhome.GUARD" />
+301-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:239:17-66
+301-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:239:25-63
+302            </intent-filter>
+303        </receiver>
+304
+305        <service
+305-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:243:9-254:19
+306            android:name="com.gathin.tvhome.InputKeyService"
+306-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:244:13-44
+307            android:exported="false"
+307-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:245:13-37
+308            android:label="@string/app_name"
+308-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:246:13-45
+309            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" >
+309-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:247:13-79
+310            <intent-filter>
+310-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:156:13-158:29
+311                <action android:name="android.accessibilityservice.AccessibilityService" />
+311-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:157:17-92
+311-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:157:25-89
+312            </intent-filter>
+313
+314            <meta-data
+314-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:159:13-161:60
+315                android:name="android.accessibilityservice"
+315-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:160:17-60
+316                android:resource="@xml/input_key_service" />
+316-->/Users/marin/.gemini/antigravity/scratch/onyx-tv/launcher/app/src/main/AndroidManifest.xml:161:17-57
+317        </service>
+318    </application>
+319
+320</manifest>
