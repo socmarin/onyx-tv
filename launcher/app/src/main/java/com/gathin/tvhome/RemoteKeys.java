@@ -413,7 +413,6 @@ final class RemoteKeys {
      *  switches to that TV input (an HDMI port) instead, an action word runs that action, and a
      *  "package/.Activity" target opens that activity. */
     static void launch(Context ctx, String pkg) {
-        android.util.Log.i("TvHome.Key", "RemoteKeys.launch target=" + pkg);
         if (pkg == null || runAction(ctx, pkg)) return;
         if (INPUTS.equals(pkg)) {
             // This launcher's own Inputs menu, as InputsRequestActivity opens it: addressed to Home directly, so a

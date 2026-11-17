@@ -1,5 +1,6 @@
 package com.gathin.tvhome;
 
+import android.content.ComponentName;
 import android.content.Intent;
 import android.net.Uri;
 import java.util.Map;
@@ -37,10 +38,33 @@ final class LaunchActions {
         return uri.isEmpty() ? null : uri;
     }
 
-    /** The intent for a launch_actions value, limited to its package: ACTION_VIEW on the URI, or the action. */
+    /** The trimmed "pkg/cls" value when an entry names an explicit component, or null otherwise. */
+    static String componentString(String value) {
+        if (value == null || viewUri(value) != null || inputId(value) != null) return null;
+        String trimmed = value.trim();
+        int slash = trimmed.indexOf('/');
+        if (slash <= 0 || slash >= trimmed.length() - 1 || trimmed.indexOf(':') >= 0) return null;
+        return trimmed;
+    }
+
+    /** The intent for a launch_actions value: ACTION_VIEW on the URI, "pkg/cls", "targetPkg:action", or the action on {@code pkg}. */
     static Intent intent(String pkg, String value) {
         String uri = viewUri(value);
-        Intent i = uri != null ? new Intent(Intent.ACTION_VIEW, Uri.parse(uri)) : new Intent(value);
-        return i.setPackage(pkg);
+        if (uri != null) {
+            return new Intent(Intent.ACTION_VIEW, Uri.parse(uri)).setPackage(pkg);
+        }
+        String component = componentString(value);
+        if (component != null) {
+            ComponentName target = ComponentName.unflattenFromString(component);
+            if (target != null) return new Intent().setComponent(target);
+        }
+        if (value != null) {
+            int colon = value.indexOf(':');
+            if (colon > 0 && colon < value.length() - 1) {
+                return new Intent(value.substring(colon + 1).trim())
+                        .setPackage(value.substring(0, colon).trim());
+            }
+        }
+        return new Intent(value).setPackage(pkg);
     }
 }

@@ -2,7 +2,7 @@
 
 [English](README.md) · [Español](README.es.md)
 
-**Onyx** es un launcher y tema minimalista en negro puro, sin distracciones, para Android TV / Google TV, basado en [Gathin23/cleanyourtv](https://github.com/Gathin23/cleanyourtv).
+**Onyx** es un launcher y tema minimalista en negro puro, sin distracciones, para Android TV, Google TV y Fire OS 7, basado en [Gathin23/cleanyourtv](https://github.com/Gathin23/cleanyourtv).
 
 ![Pantalla principal Onyx TV](themes/onyx/screenshot.jpg)
 
@@ -12,6 +12,9 @@
 - **Home minimalista de 5 columnas:** `dock_margin_top` (`145`) y `focus_scale` (`1.25x`) ajustables, resaltado de foco fino (`glass_style: "rim"`) y arranque silencioso opcional (`initial_focus: false`).
 - **Bóveda de aplicaciones en cuadrícula (6 columnas):** cajón de apps limpio (`AppLibraryDialog`) con indicador de apps fijadas en la Home y menú contextual al mantener pulsado OK.
 - **Barra superior solo con iconos:** botones flotantes (Aplicaciones, Entradas, Ajustes) sin píldoras ni texto extra.
+- **Soporte Fire OS 7:** gestión genérica con `stock_home_redirect` (`BootReceiver`, `GuardRevival`, `GuardKeep`, retorno tras reposo), apertura directa de Appstore (`FEATURED_LAUNCH`), intercepción del grid de Apps hacia la bóveda (`library`), resincronización del nombre Bluetooth, guarda opcional `fire_remote_bt_power_mac` y `window_redirects` configurables.
+- **Arte local personalizado (`img/`):** banners de tiles (`files/banners/`) e iconos en la bóveda (`files/icons/`) mediante `app_banners` y `app_icons`, sin necesitar permiso `INTERNET`.
+- **`launch_actions` flexibles:** soporta acciones entre paquetes (`pkg:action`), actividades explícitas (`pkg/.Activity`), entradas TV (`input:<id>`) y URIs (`view:<uri>`).
 - **Multiidioma:** hereda el soporte completo de más de 30 idiomas de CleanYourTV (español, inglés, alemán, francés, italiano, portugués, neerlandés, polaco, ucraniano, turco, japonés, chino, etc.).
 
 ![Navegación Onyx TV](themes/onyx/preview.gif)

@@ -62,4 +62,20 @@ public class LaunchActionsTest {
         assertNull(LaunchActions.inputId("input:"));
         assertNull(LaunchActions.inputId("input:   "));
     }
+
+    @Test public void crossPackageColonSyntaxPreservesActionPart() {
+        assertNull(LaunchActions.viewUri("com.amazon.tv.livetv:com.amazon.tv.livetv.action.YAC_LAUNCH"));
+        assertNull(LaunchActions.inputId("com.amazon.tv.livetv:com.amazon.tv.livetv.action.YAC_LAUNCH"));
+    }
+
+    @Test public void componentSyntaxMatchesExplicitActivityTargetsOnly() {
+        assertEquals("com.amazon.tv.launcher/.ui.MainSettingsActivity",
+                LaunchActions.componentString(" com.amazon.tv.launcher/.ui.MainSettingsActivity "));
+        assertNull(LaunchActions.componentString("com.amazon.venezia.ade.FEATURED_LAUNCH"));
+        assertNull(LaunchActions.componentString("com.amazon.tv.livetv:com.amazon.tv.livetv.action.YAC_LAUNCH"));
+        assertNull(LaunchActions.componentString("input:com.mediatek.tvinput/.hdmi.HDMIInputService/HW6"));
+        assertNull(LaunchActions.componentString("view:https://example.com/a"));
+        assertNull(LaunchActions.componentString("/.Activity"));
+        assertNull(LaunchActions.componentString("pkg/"));
+    }
 }

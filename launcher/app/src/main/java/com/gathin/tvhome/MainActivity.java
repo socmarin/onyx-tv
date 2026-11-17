@@ -359,6 +359,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean libraryOkOpens;
     private boolean libraryFocusPending;
     private Map<String, String> appLabels = Collections.emptyMap();
+    private Map<String, String> appIcons = Collections.emptyMap();
+    private Map<String, String> launchActions = Collections.emptyMap();
     private PopupWindow topButtonTooltip;
     private TextView topButtonTooltipView;
     private RecyclerView.OnScrollListener pendingFocusScroll;
@@ -493,6 +495,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         appLibrarySelection = cfg.appLibrarySelection;
         libraryOkOpens = cfg.libraryOkOpens;
         appLabels = cfg.appLabels;
+        appIcons = cfg.appIcons;
+        launchActions = cfg.launchActions;
         // restore_key_services: after a force stop, put back the remote's accessibility helpers that Android took
         // off the list (needs WRITE_SECURE_SETTINGS, granted by build-and-install with RESTORE_KEY_SERVICES=1).
         if (cfg.restoreKeyServices) ServiceRepair.restore(this);
@@ -1121,6 +1125,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onResume() {
         super.onResume();
         resumed = true;
+        HomeKeyService.markHomeShownThisBoot(this);
+        GuardKeep.ensureHomeKey(this);
+        RemotePowerGuard.enforceSettings(this);
         // A festival that started or ended while Home was in the background: rebuild with or without it.
         if (festive != festival.active(LocalDate.now())) {
             recreate();
@@ -1353,11 +1360,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (resumed && idleClockMs > 0) root.postDelayed(showIdleClock, idleClockMs);
     }
 
+    private static volatile boolean windowFocused;
+
+    static boolean isWindowFocused() {
+        return windowFocused;
+    }
+
     @Override
     protected void onPause() {
         super.onPause();
         dismissTopButtonTooltip();
         resumed = false;
+        windowFocused = false;
         // No UP reaches a paused Home, so a vendor-key hold it saw go down would still open its app later.
         // Only Home's own share is dropped: a key service that saw the same DOWN keeps its hold.
         RemoteKeys.release(this);
@@ -1419,7 +1433,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
+        windowFocused = hasFocus;
         if (hasFocus) {
+            FireHomeRedirect.shown();
             startPendingSettingsReorder();
             if (libraryFocusPending && appLibrary == null) focusLibrary();
             showCardPrompt();
@@ -1851,7 +1867,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             grid.post(() -> {
                 if (libraryFocusPending && appLibrary == null && hasWindowFocus() && !isFinishing()) focusLibrary();
             });
-        }, libraryExcludedApps, appLabels);
+        }, libraryExcludedApps, appLabels, appIcons, launchActions, this::openInput);
         openPopup = appLibrary.popup;
         appLibrary.show();
     }
@@ -3423,13 +3439,25 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         return true;
     }
 
-    /** The Live TV app's launch intent: its leanback entry point, or the configured action if it has none. */
+    /** The Live TV app's launch intent: its leanback entry point, or the configured action/input if it has none. */
     private Intent liveTvIntent() {
         if (liveTvPkg.isEmpty()) return null;
         Intent i = getPackageManager().getLeanbackLaunchIntentForPackage(liveTvPkg);
-        if (i != null || liveTvAction.isEmpty()) return i;
-        Intent byAction = new Intent(liveTvAction).setPackage(liveTvPkg);
-        return getPackageManager().resolveActivity(byAction, 0) != null ? byAction : null;
+        if (i != null) return i;
+        if (!liveTvAction.isEmpty()) {
+            Intent byAction = LaunchActions.intent(liveTvPkg, liveTvAction);
+            if (getPackageManager().resolveActivity(byAction, 0) != null) return byAction;
+        }
+        if (!liveTvInputId.isEmpty()) {
+            boolean rootChannel = TvContract.Channels.CONTENT_URI.toString().equals(liveTvInputId);
+            Intent byInput = new Intent(Intent.ACTION_VIEW)
+                    .setDataAndType(rootChannel ? TvContract.Channels.CONTENT_URI
+                                    : TvContract.buildChannelsUriForInput(liveTvInputId),
+                            TvContract.Channels.CONTENT_TYPE)
+                    .setPackage(liveTvPkg);
+            if (getPackageManager().resolveActivity(byInput, 0) != null) return byInput;
+        }
+        return null;
     }
 
     /** The TV's own source-selection panel, for TVs that have no TvInputManager (TCL Android TV 9): a
@@ -3458,6 +3486,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void open(Intent i) {
+        FireHomeRedirect.cancelActive();
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         try {
             startActivity(i);
@@ -3485,13 +3514,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      *  throws SecurityException, which used to take Home down with it (YaOS before the manifest asked
      *  for ACCESS_TV_SOURCE). */
     private void openInput(String inputId) {
+        FireHomeRedirect.cancelActive();
         // A CEC device is a child input of its HDMI port; the vendor source number belongs to the port
         // (MiTV-MFFU0). Only that lookup uses the parent: the generic path below still opens the child.
         String sourceId = inputId;
+        TvInputInfo info = null;
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
         if (tim != null) {
             try {
-                TvInputInfo info = tim.getTvInputInfo(inputId);
+                info = tim.getTvInputInfo(inputId);
                 if (info != null && info.getParentId() != null) sourceId = info.getParentId();
             } catch (RuntimeException ignored) {
             }
@@ -3516,9 +3547,26 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 // fall through to the standard way
             }
         }
+        boolean tuner = info != null && !info.isPassthroughInput();
+        if (tuner) {
+            Intent dtt = new Intent("com.amazon.tv.livetv.action.YAC_LAUNCH")
+                    .setPackage("com.amazon.tv.livetv")
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            if (getPackageManager().resolveActivity(dtt, 0) != null) {
+                startActivity(dtt);
+                return;
+            }
+        }
+        if (!tuner && "com.vewd.core.tvapp".equals(liveTvPkg)) {
+            startActivity(new Intent(this, PassthroughActivity.class)
+                    .putExtra(PassthroughActivity.EXTRA_INPUT_ID, inputId)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            return;
+        }
         Uri uri = TvContract.buildChannelUriForPassthroughInput(inputId);
+        String mime = "vnd.android.cursor.item/channel";
         Intent view = (inputUriScheme.isEmpty()
-                ? new Intent(Intent.ACTION_VIEW).setDataAndType(uri, "vnd.android.cursor.item/channel")
+                ? new Intent(Intent.ACTION_VIEW).setDataAndType(uri, mime)
                 : new Intent(Intent.ACTION_VIEW, uri.buildUpon().scheme(inputUriScheme).build()))
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         // Aim it at the TV app first: apps installed later (a streaming app, a file manager) can claim the same
@@ -3539,7 +3587,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 return;
             }
         }
-        open(inputActionIntent().setDataAndType(uri, "vnd.android.cursor.item/channel"));
+        open(inputActionIntent().setDataAndType(uri, mime));
     }
 
     /** `input_action` as an intent: an explicit component when it reads "package/.Activity", else an action. */
@@ -3713,7 +3761,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             addInputRow(rows, popup, R.drawable.ic_input, getString(R.string.inputs), -1, this::openSourcePanel);
         }
         Intent liveTv = liveTvIntent();
-        if (liveTv != null && tunerId != null) {
+        if (liveTv != null && tunerId != null && (liveTvAction.isEmpty() || !liveTvInputId.isEmpty())) {
             // Tune that input only when the Live TV package itself handles the URI.
             // The unrestricted input player also resolves it (that is how HDMI opens), but on the
             // AIWA AI PONT SA that player stays black, and the Live TV package does not handle the
@@ -3739,7 +3787,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (liveTv != null) {
             if (rows.getChildCount() > 0) addSeparator(rows);
-            final Intent liveTvIntent = liveTv;
+            Intent dtt = new Intent("com.amazon.tv.livetv.action.YAC_LAUNCH")
+                    .setPackage("com.amazon.tv.livetv");
+            final Intent liveTvIntent = ("com.vewd.core.tvapp".equals(liveTvPkg)
+                    && getPackageManager().resolveActivity(dtt, 0) != null) ? dtt : liveTv;
             String tvLabel = (appLabels != null && appLabels.containsKey(liveTvPkg)) ? appLabels.get(liveTvPkg) : getString(R.string.live_tv);
             addInputRow(rows, popup, R.drawable.ic_livetv, tvLabel, -1, () -> open(liveTvIntent));
         }

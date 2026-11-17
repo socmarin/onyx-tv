@@ -169,8 +169,11 @@ final class AppLibraryDialog {
     /** library_excluded_apps (config.xml), never offered in the catalogue; empty by default, so existing
      *  setups are unaffected. See LibraryApps.excludedFromCatalog(). */
     private final Set<String> excludedApps;
+    private final Map<String, String> appIcons;
+    private final Map<String, String> launchActions;
+    private final java.util.function.Consumer<String> onOpenInput;
 
-    AppLibraryDialog(Activity activity, boolean animations, boolean reducedMotion, boolean selectionMode, boolean okOpens, Predicate<String> onHome, Runnable changed, Runnable dismissed, Set<String> excludedApps, Map<String, String> customLabels) {
+    AppLibraryDialog(Activity activity, boolean animations, boolean reducedMotion, boolean selectionMode, boolean okOpens, Predicate<String> onHome, Runnable changed, Runnable dismissed, Set<String> excludedApps, Map<String, String> customLabels, Map<String, String> appIcons, Map<String, String> launchActions, java.util.function.Consumer<String> onOpenInput) {
         this.activity = activity;
         this.animations = animations;
         this.rtl = activity.getResources().getBoolean(R.bool.rtl_app_grid);
@@ -182,6 +185,9 @@ final class AppLibraryDialog {
         this.dismissed = dismissed;
         this.excludedApps = excludedApps;
         this.customLabels = customLabels;
+        this.appIcons = appIcons;
+        this.launchActions = launchActions;
+        this.onOpenInput = onOpenInput;
         density = activity.getResources().getDisplayMetrics().density;
         panel = new LinearLayout(activity);
         panel.setLayoutDirection(rtl ? View.LAYOUT_DIRECTION_RTL : View.LAYOUT_DIRECTION_LTR);
@@ -341,7 +347,13 @@ final class AppLibraryDialog {
     }
 
     private Drawable customIcon(String pkg) {
-        return null;
+        String name = appIcons != null ? appIcons.get(pkg) : null;
+        if (name == null || name.isEmpty()) return null;
+        Drawable external = CustomArt.loadDrawable(activity, CustomArt.ICONS_DIR, name, 256, 256);
+        if (external != null) return external;
+        if (!name.startsWith("ic_")) return null;
+        int id = activity.getResources().getIdentifier(name, "drawable", activity.getPackageName());
+        return id != 0 ? activity.getDrawable(id) : null;
     }
 
     /** The app's icon from this opening's cache, or loaded on LOADER and set once it arrives. */
@@ -539,12 +551,24 @@ final class AppLibraryDialog {
     }
 
     private void open(ResolveInfo app) {
+        FireHomeRedirect.cancelActive();
         close();
+        String pkg = app.activityInfo.packageName;
+        String action = launchActions != null ? launchActions.get(pkg) : null;
+        String inputId = LaunchActions.inputId(action);
+        if (inputId != null && onOpenInput != null) {
+            onOpenInput.accept(inputId);
+            return;
+        }
         Intent intent = new Intent(Intent.ACTION_MAIN).setComponent(
-                new ComponentName(app.activityInfo.packageName, app.activityInfo.name));
+                new ComponentName(pkg, app.activityInfo.name));
         // TV apps keep the leanback launch intent, so an app already running resumes instead of restarting.
-        if (tvPackages.contains(app.activityInfo.packageName)) intent.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
+        if (tvPackages.contains(pkg)) intent.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+        if (action != null) {
+            Intent byAction = LaunchActions.intent(pkg, action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            if (activity.getPackageManager().resolveActivity(byAction, 0) != null) intent = byAction;
+        }
         try { activity.startActivity(intent); }
         catch (ActivityNotFoundException | SecurityException e) {
             Toast.makeText(activity, activity.getString(R.string.cant_open, label(app)), Toast.LENGTH_SHORT).show();

@@ -2,15 +2,18 @@ package com.gathin.tvhome;
 
 import android.Manifest;
 import android.accessibilityservice.AccessibilityService;
+import android.accessibilityservice.AccessibilityServiceInfo;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.os.PowerManager;
 import android.os.UserManager;
 import android.provider.Settings;
+import android.view.accessibility.AccessibilityManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,12 +47,13 @@ final class GuardKeep {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_OFF, off).commit();
     }
 
-    /** Puts HomeKeyService back on the enabled list when standby exit is opted in. Other services stay. */
+    /** Puts HomeKeyService back on the enabled list when standby exit, restore_key_services or stock_home_redirect is on. Other services stay. */
     static void ensureHomeKey(Context context) {
         // The helper may already be bound. Arming only inside onServiceConnected misses an opt-in
         // that arrives after that, so the first screen-off does nothing (Philips 65PUS8102).
         HomeKeyService.applyStandbyOptIn();
-        if (!offInStandby(context)) return;
+        Config cfg = Config.load(context);
+        if (!offInStandby(context) && !cfg.restoreKeyServices && cfg.stockHomeRedirect.isEmpty()) return;
         if (context.checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS)
                 != PackageManager.PERMISSION_GRANTED) return;
         PowerManager power = context.getSystemService(PowerManager.class);
@@ -63,12 +67,14 @@ final class GuardKeep {
             String list = Settings.Secure.getString(context.getContentResolver(),
                     Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
             List<String> entries = new ArrayList<>();
+            List<String> withoutMine = new ArrayList<>();
             boolean found = false;
             if (list != null && !list.equals("null")) {
                 for (String entry : list.split(":")) {
                     if (entry.isEmpty()) continue;
                     ComponentName name = ComponentName.unflattenFromString(entry);
                     if (mine.equals(name)) found = true;
+                    else withoutMine.add(entry);
                     entries.add(entry);
                 }
             }
@@ -76,11 +82,30 @@ final class GuardKeep {
                 entries.add(mine.flattenToShortString());
                 Settings.Secure.putString(context.getContentResolver(),
                         Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, String.join(":", entries));
+            } else if (!HomeKeyService.isRunning() && !isServiceBound(context, mine)) {
+                Settings.Secure.putString(context.getContentResolver(),
+                        Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, String.join(":", withoutMine));
+                Settings.Secure.putString(context.getContentResolver(),
+                        Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, String.join(":", entries));
             }
             Settings.Secure.putInt(context.getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, 1);
         } catch (RuntimeException ignored) {
             // The settings are the system's; a refusal leaves the helper as it was.
         }
+    }
+
+    private static boolean isServiceBound(Context context, ComponentName target) {
+        AccessibilityManager am = context.getSystemService(AccessibilityManager.class);
+        if (am == null || !am.isEnabled()) return false;
+        for (AccessibilityServiceInfo info : am.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)) {
+            ResolveInfo resolve = info.getResolveInfo();
+            if (resolve == null || resolve.serviceInfo == null) continue;
+            if (target.getPackageName().equals(resolve.serviceInfo.packageName)
+                    && target.getClassName().equals(resolve.serviceInfo.name)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Drops the service from the list and puts it back on the next SCREEN_ON. The process has to stay up. */

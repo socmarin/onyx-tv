@@ -1,0 +1,7 @@
+.DS_Store
+.gradle/
+launcher/.gradle/
+launcher/app/build/
+launcher/build/
+local.properties
+*.iml

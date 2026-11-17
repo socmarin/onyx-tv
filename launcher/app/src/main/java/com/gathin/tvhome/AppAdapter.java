@@ -216,8 +216,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final Map<String, String> launchActions;
     /** Hold OK opens the activity's tile menu (config.xml, tile_menu); false opens App info, as before. */
     private final boolean tileMenu;
-    /** Tile names and bundled banners that replace the app's own (config.xml, app_labels and app_banners). */
-    private final Map<String, String> appLabels, appBanners;
+    /** Tile names, banners and icons that replace the app's own (config.xml / config.json). */
+    private final Map<String, String> appLabels, appBanners, appIcons;
     /** Every app tile is its icon on a card tinted from that icon, never its banner (config.xml, uniform_tiles). */
     private final boolean uniformTiles;
     /** Packages drawn from their icon and name even when they have a banner (config.xml icon_tiles). */
@@ -250,6 +250,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.tileMenu = cfg.tileMenu;
         this.appLabels = cfg.appLabels;
         this.appBanners = cfg.appBanners;
+        this.appIcons = cfg.appIcons;
         this.uniformTiles = cfg.uniformTiles;
         this.customFocusScale = cfg.focusScale;
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
@@ -303,12 +304,23 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             Drawable banner = null;
             // uniform_tiles draws the icon, so an app's banner is never loaded. A module card keeps its banner.
             if (!(uniformTiles && card == null)) {
-                banner = bundledBanner(appBanners.get(pkg));
-                if (banner == null) banner = iconTiles.contains(pkg) ? iconBanner(ri.loadIcon(pm)) : loadBanner(pm, ri);
+                banner = customBanner(appBanners.get(pkg));
+                if (banner == null) {
+                    Drawable iconOverride = customIcon(pkg);
+                    if (iconTiles.contains(pkg)) {
+                        banner = iconBanner(iconOverride != null ? iconOverride : ri.loadIcon(pm));
+                    } else {
+                        banner = loadBanner(pm, ri);
+                    }
+                }
             }
             // The icon is only drawn (and sampled for the glow) when there is no banner, so a tile with a
             // banner skips loading and decoding it.
-            Drawable icon = banner == null ? ri.loadIcon(pm) : null;
+            Drawable icon = null;
+            if (banner == null) {
+                icon = customIcon(pkg);
+                if (icon == null) icon = ri.loadIcon(pm);
+            }
             if (card != null) {
                 fresh.add(new Entry(Entry.CARD, label, component, banner, icon, card.caption, card.accent));
             } else {
@@ -360,9 +372,22 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         return new android.graphics.drawable.BitmapDrawable(ctx.getResources(), bmp);
     }
 
-    /** A banner_* drawable bundled with the launcher, or null for none or a name that is not one. */
-    private Drawable bundledBanner(String name) {
+    /** Banner from files/banners/ first, then a bundled banner_* drawable, or null when absent. */
+    private Drawable customBanner(String name) {
+        Drawable external = CustomArt.loadDrawable(ctx, CustomArt.BANNERS_DIR, name, 640, 360);
+        if (external != null) return external;
         if (name == null || !name.startsWith("banner_")) return null;
+        int id = ctx.getResources().getIdentifier(name, "drawable", ctx.getPackageName());
+        return id != 0 ? ctx.getDrawable(id) : null;
+    }
+
+    /** Icon override from files/icons/ or a bundled ic_* drawable, or null when unconfigured. */
+    private Drawable customIcon(String pkg) {
+        String name = appIcons.get(pkg);
+        if (name == null || name.isEmpty()) return null;
+        Drawable external = CustomArt.loadDrawable(ctx, CustomArt.ICONS_DIR, name, 256, 256);
+        if (external != null) return external;
+        if (!name.startsWith("ic_")) return null;
         int id = ctx.getResources().getIdentifier(name, "drawable", ctx.getPackageName());
         return id != 0 ? ctx.getDrawable(id) : null;
     }
@@ -545,6 +570,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     /** Opens the tile's activity by explicit component, with no extras: a card can name nothing else. */
     @SuppressWarnings("deprecation")
     private void launch(Entry e) {
+        FireHomeRedirect.cancelActive();
         if (e.kind == Entry.HOME_SETTINGS) {
             ctx.startActivity(new Intent(ctx, HomeSettingsActivity.class)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));

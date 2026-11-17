@@ -31,4 +31,19 @@ public class PackageMapTest {
     @Test public void aLaterEntryForAPackageWins() {
         assertEquals("second", Config.packageMap(Arrays.asList("a.pkg=first", "a.pkg=second")).get("a.pkg"));
     }
+
+    @Test public void amazonAppstoreGetsStorefrontActionWhenLibraryIsOnUnlessOverridden() {
+        Map<String, String> off = new java.util.HashMap<>();
+        Config.ensureVeneziaStoreAction(off, false);
+        assertTrue(off.isEmpty());
+
+        Map<String, String> defaulted = new java.util.HashMap<>();
+        Config.ensureVeneziaStoreAction(defaulted, true);
+        assertEquals("com.amazon.venezia.ade.FEATURED_LAUNCH", defaulted.get("com.amazon.venezia"));
+
+        Map<String, String> custom = new java.util.HashMap<>();
+        custom.put("com.amazon.venezia", "custom.ACTION");
+        Config.ensureVeneziaStoreAction(custom, true);
+        assertEquals("custom.ACTION", custom.get("com.amazon.venezia"));
+    }
 }

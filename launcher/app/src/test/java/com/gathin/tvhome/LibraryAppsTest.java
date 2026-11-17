@@ -151,4 +151,17 @@ public class LibraryAppsTest {
         catch (IllegalArgumentException expected) { }
         assertEquals(LibraryApps.MAX_ADDED, apps.size());
     }
+
+    @Test public void stockHomeRedirectIsExcludedFromBothHomeAndLibraryWithoutDuplicates() {
+        java.util.List<String> hidden = new java.util.ArrayList<>();
+        hidden.add("com.amazon.tv.launcher");
+        java.util.List<String> excluded = new java.util.ArrayList<>();
+        Config.excludeRedirectTarget(hidden, excluded, " com.amazon.tv.launcher ");
+        assertEquals(java.util.Collections.singletonList("com.amazon.tv.launcher"), hidden);
+        assertEquals(java.util.Collections.singletonList("com.amazon.tv.launcher"), excluded);
+        Config.excludeRedirectTarget(hidden, excluded, "  ");
+        Config.excludeRedirectTarget(hidden, excluded, null);
+        assertEquals(1, hidden.size());
+        assertEquals(1, excluded.size());
+    }
 }

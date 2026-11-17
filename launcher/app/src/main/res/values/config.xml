@@ -23,9 +23,12 @@
          set "fill_dock": false. -->
     <bool name="fill_dock">true</bool>
 
-    <!-- Apps never shown as tiles (e.g. the Live TV app, which the Inputs menu already covers). -->
+    <!-- Apps never shown as tiles (e.g. the Live TV app, which the Inputs menu already covers,
+         and Fire OS's stock Home launcher packages when Onyx replaces it). -->
     <string-array name="hidden_apps">
         <item>com.mitv.gallery</item>
+        <item>com.amazon.tv.launcher</item>
+        <item>com.amazon.firehomestarter</item>
     </string-array>
 
     <!-- The TV's Live TV / tuner app, offered at the end of the Inputs menu. Leave empty to omit. -->
@@ -75,16 +78,23 @@
          the tile switch to that TV input instead (ids from dumpsys tv_input), e.g. a Live TV tile straight to
          HDMI 1: com.mediatek.wwtv.tvcenter=input:com.mediatek.tvinput/.hdmi.HDMIInputService/HW5. "package=view:uri"
          opens that URI in the package instead (ACTION_VIEW): Bbox TV's live channels are
-         fr.bouyguestelecom.tv.bbui=view:bbox://live. -->
+         fr.bouyguestelecom.tv.bbui=view:bbox://live.
+         Fire OS's Appstore MAIN activity (AppsGridLauncherActivity) is intercepted by HomeKeyService to open
+         Onyx's App library, so FEATURED_LAUNCH keeps the Amazon Appstore storefront reachable. -->
     <string-array name="launch_actions">
+        <item>com.amazon.venezia=com.amazon.venezia.ade.FEATURED_LAUNCH</item>
     </string-array>
 
     <!-- A tile's name instead of the app's own: "package=Name". It also shows above the dock. -->
     <string-array name="app_labels">
     </string-array>
-    <!-- A tile's artwork instead of the app's banner: "package=drawable", a banner_* drawable bundled with the
-         launcher (res/drawable). banner_tv is a magenta field with the Live TV glyph. -->
+    <!-- A tile's artwork instead of the app's banner: "package=name", resolved from files/banners/ or a
+         bundled banner_* drawable (banner_tv is a magenta field with the Live TV glyph). -->
     <string-array name="app_banners">
+    </string-array>
+    <!-- An app's icon override in the App library (or icon tiles): "package=name", resolved from
+         files/icons/ or a bundled ic_* drawable. -->
+    <string-array name="app_icons">
     </string-array>
 
     <!-- TVs with no TvInputManager have no HDMI list to read, but their own source-selection panel
@@ -221,19 +231,6 @@
          where the firmware hands KEYCODE_GUIDE (172) to the stock launcher and no app ever receives it. Leave empty
          to omit. -->
     <string-array name="app_keys" translatable="false">
-        <item>scan:104:input:com.mediatek.tvinput/.hdmi.HDMIInputService/HW6</item>
-        <item>scan:295:input:com.mediatek.tvinput/.hdmi.HDMIInputService/HW6</item>
-        <item>KEYCODE_PAGE_UP:input:com.mediatek.tvinput/.hdmi.HDMIInputService/HW6</item>
-        <item>92:input:com.mediatek.tvinput/.hdmi.HDMIInputService/HW6</item>
-        <item>scan:484:input:com.mediatek.tvinput/.hdmi.HDMIInputService/HW7</item>
-        <item>scan:481:input:com.mediatek.tvinput/.hdmi.HDMIInputService/HW7</item>
-        <item>scan:297:input:com.mediatek.tvinput/.hdmi.HDMIInputService/HW7</item>
-        <item>KEYCODE_B:input:com.mediatek.tvinput/.hdmi.HDMIInputService/HW7</item>
-        <item>30:input:com.mediatek.tvinput/.hdmi.HDMIInputService/HW7</item>
-        <item>scan:212:input:com.mediatek.tvinput/.tuner.TunerInputService/HW0</item>
-        <item>scan:315:input:com.mediatek.tvinput/.tuner.TunerInputService/HW0</item>
-        <item>KEYCODE_CAMERA:input:com.mediatek.tvinput/.tuner.TunerInputService/HW0</item>
-        <item>27:input:com.mediatek.tvinput/.tuner.TunerInputService/HW0</item>
     </string-array>
 
     <!-- Package of the stock launcher, for TVs whose firmware turns it back on after it was disabled. XGIMI's
@@ -241,6 +238,14 @@
          Whenever that launcher's home screen comes up anyway, HomeKeyService (HOME_KEY_SERVICE=1) sends the TV
          straight back here. A theme's config.json can set it too. Leave empty to omit. -->
     <string name="stock_home_redirect" translatable="false"></string>
+    <!-- Window-level redirects for vendor buttons intercepted by the OS before reaching key filtering.
+         Supports "package=target", "package/activity=target" and "details:<text>=target" (for Fire OS
+         Appstore details dialogs). Targets use the same syntax as app_keys ("package", "library", etc.). -->
+    <string-array name="window_redirects" translatable="false">
+    </string-array>
+    <!-- Optional Bluetooth MAC address of a Fire TV remote whose Power key must stay mapped exclusively to
+         BT_KEYPRESS in com.amazon.device.bluetoothkeymaplib (empty = disabled). -->
+    <string name="fire_remote_bt_power_mac" translatable="false"></string>
 
     <!-- For TVs whose firmware opens the Live TV app (live_tv_package) by itself at every power-on, with no setting
          to change it (Changhong / Homwee boards start com.mediatek.wwtv.tvcenter from its own boot receiver, which
@@ -444,10 +449,11 @@
     <!-- Packages the App library catalogue never offers, even with app_library on (config.xml
          library_excluded_apps, or a theme's config.json). Different from hidden_apps, which only keeps a
          package off Home while still listing it here: some boards hide a package because opening it is
-         unsafe (a factory-test menu that can misconfigure the TV), and the catalogue otherwise ignores
-         hidden_apps and offers it as "Add to Home" anyway. Empty (off) by default, so existing setups
-         change nothing. -->
+         unsafe (a factory-test menu that can misconfigure the TV), and Fire OS's stock Home launcher
+         packages serve no purpose inside Onyx's own library. -->
     <string-array name="library_excluded_apps" translatable="false">
+        <item>com.amazon.tv.launcher</item>
+        <item>com.amazon.firehomestarter</item>
     </string-array>
 
     <!-- Module cards: an app that declares a card (docs/specs/card.md) can stand in for its tile with its own

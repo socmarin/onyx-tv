@@ -62,9 +62,6 @@ public class InputKeyService extends AccessibilityService {
 
     @Override
     protected boolean onKeyEvent(KeyEvent event) {
-        if (event.getAction() == KeyEvent.ACTION_DOWN) {
-            android.util.Log.i("TvHome.Key", "InputKeyService onKeyEvent keycode=" + event.getKeyCode() + " (" + KeyEvent.keyCodeToString(event.getKeyCode()) + ") scan=" + event.getScanCode());
-        }
         if (consumeVolumeKeys && VolumeKeys.handle(this, event)) return true;
         // A scancode entry is more specific than any keycode, so it goes first.
         if (RemoteKeys.handle(this, event, appScancodes.get(event.getScanCode()),

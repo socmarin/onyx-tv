@@ -72,8 +72,10 @@ final class Config {
     final Map<String, String> launchActions;
     /** Package to the name its tile shows instead of the app's label (config.xml, app_labels). */
     final Map<String, String> appLabels;
-    /** Package to a bundled banner_* drawable its tile shows instead of the app's art (config.xml, app_banners). */
+    /** Package to a banner name (files/banners/ or bundled banner_* drawable) shown on its tile (app_banners). */
     final Map<String, String> appBanners;
+    /** Package to an icon name (files/icons/ or bundled ic_* drawable) shown in the App library (app_icons). */
+    final Map<String, String> appIcons;
     final String sourcePanelService;
     final String sourcePanelAction;
     /** One int extra for the source panel, "name=value" (config.xml source_panel_extra); empty for none. */
@@ -183,6 +185,10 @@ final class Config {
     final boolean homeIgnoreChannelKeys;
     /** Stock launcher whose home screen is sent back here if the firmware revives it (config.xml stock_home_redirect). */
     final String stockHomeRedirect;
+    /** Window-level redirects for vendor buttons intercepted by the OS before key filtering (config.xml window_redirects). */
+    final List<String> windowRedirects;
+    /** Optional Bluetooth MAC address of a Fire TV remote whose Power key stays mapped to BT_KEYPRESS (fire_remote_bt_power_mac). */
+    final String fireRemoteBtPowerMac;
     /** A Live TV window the firmware opens by itself at power-on is sent back to Home (power_on_home). */
     final boolean powerOnHome;
     /** Every Home press opens this launcher, a held one too, instead of Android's long-press action (home_long_press_home). */
@@ -285,7 +291,7 @@ final class Config {
 
     private Config(List<String> dockApps, boolean fillDock, List<String> hiddenApps, List<String> libraryApps, List<String> libraryExcludedApps, String liveTvPackage,
                    String liveTvAction, String liveTvInputId, Map<String, String> launchActions, Map<String, String> appLabels,
-                   Map<String, String> appBanners, String sourcePanelService, String sourcePanelAction,
+                   Map<String, String> appBanners, Map<String, String> appIcons, String sourcePanelService, String sourcePanelAction,
                    String sourcePanelExtra, boolean coocaaSources, String inputAction, List<String> inputSources,
                    String inputUriScheme, int columns, int rowsBelowDock, boolean animations, boolean advancedEffects,
                    boolean shamsiDate, String greetingName, boolean moduleCards, boolean reducedMotion, boolean bootToLiveTv, boolean openOnStartChoice, boolean dockTitle, boolean dockRow, boolean topMenu, boolean launcherSettingsButton, boolean reorderButton, boolean showNetworkPill, boolean showInputsPill, boolean iconOnlyButtons, boolean iconOnlyInputs, boolean libraryButton, boolean showLibraryPill, int wifiLabelWidth, boolean alwaysShowNames, boolean wallpaperTrueColor, boolean focusOvershoot, String vpnApp,
@@ -293,6 +299,7 @@ final class Config {
                    int[] settingsKeycodes, boolean settingsKeyPanel, boolean restoreKeyServices, boolean wallpaperEnabled, File wallpaper, List<File> wallpapers,
                    int wallpaperRotationMinutes, int wallpaperDim, int dockOpacity, String wallpaperOrder, boolean overlayApplied,
                    Festival festival, int[] inputKeycodes, List<String> appKeys, String stockHomeRedirect,
+                   List<String> windowRedirects, String fireRemoteBtPowerMac,
                    List<RaceWeekend.Race> raceCalendar, boolean cinematicHome, boolean ambientGlow, boolean appGlow, boolean fadeRows, int homeIdleClockMinutes,
                    boolean keyFilter, boolean dockGlass, String glowStyle, boolean wallpaperCaptions,
                    boolean handleViewInputs, boolean tileMenu, boolean dockEvenPadding, boolean dockBand, boolean cinematicDots, boolean cinematicWhiteFocus, boolean wifiStatusColor, int cinematicScrim, int cinematicArt,
@@ -305,6 +312,8 @@ final class Config {
         this.appKeys = Collections.unmodifiableList(appKeys);
         this.keyFilter = keyFilter;
         this.stockHomeRedirect = stockHomeRedirect;
+        this.windowRedirects = Collections.unmodifiableList(windowRedirects);
+        this.fireRemoteBtPowerMac = fireRemoteBtPowerMac;
         this.dockApps = Collections.unmodifiableList(dockApps);
         this.fillDock = fillDock;
         this.hiddenApps = Collections.unmodifiableList(hiddenApps);
@@ -316,6 +325,7 @@ final class Config {
         this.launchActions = Collections.unmodifiableMap(launchActions);
         this.appLabels = Collections.unmodifiableMap(appLabels);
         this.appBanners = Collections.unmodifiableMap(appBanners);
+        this.appIcons = Collections.unmodifiableMap(appIcons);
         this.sourcePanelService = sourcePanelService;
         this.sourcePanelAction = sourcePanelAction;
         this.sourcePanelExtra = sourcePanelExtra;
@@ -434,6 +444,22 @@ final class Config {
         return GLASS_HALO.equalsIgnoreCase(v) ? GLASS_HALO : GLASS_DEFAULT;
     }
 
+    /** Hide any redirected stock launcher package from both Home tiles and the App library. */
+    static void excludeRedirectTarget(List<String> hidden, List<String> libraryExcluded, String redirectPkg) {
+        if (redirectPkg == null) return;
+        String target = redirectPkg.trim();
+        if (target.isEmpty()) return;
+        if (!hidden.contains(target)) hidden.add(target);
+        if (!libraryExcluded.contains(target)) libraryExcluded.add(target);
+    }
+
+    /** Route Amazon Appstore to its storefront so it bypasses HomeKeyService's Apps-grid intercept. */
+    static void ensureVeneziaStoreAction(Map<String, String> actions, boolean appLibrary) {
+        if (appLibrary && !actions.containsKey("com.amazon.venezia")) {
+            actions.put("com.amazon.venezia", "com.amazon.venezia.ade.FEATURED_LAUNCH");
+        }
+    }
+
     /** The folder the theme tools push into; null when external storage is unavailable. */
     static File dir(Context ctx) {
         return ctx.getExternalFilesDir(null);
@@ -452,6 +478,7 @@ final class Config {
         List<String> launchActions = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.launch_actions)));
         List<String> appLabels = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.app_labels)));
         List<String> appBanners = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.app_banners)));
+        List<String> appIcons = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.app_icons)));
         String panelService = res.getString(R.string.source_panel_service).trim();
         String panelAction = res.getString(R.string.source_panel_action).trim();
         String panelExtra = res.getString(R.string.source_panel_extra).trim();
@@ -510,6 +537,8 @@ final class Config {
         boolean handleViewInputs = res.getBoolean(R.bool.handle_view_inputs);
         List<String> appKeys = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.app_keys)));
         String stockHomeRedirect = res.getString(R.string.stock_home_redirect).trim();
+        List<String> windowRedirects = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.window_redirects)));
+        String fireRemoteBtPowerMac = res.getString(R.string.fire_remote_bt_power_mac).trim();
         boolean cinematic = res.getBoolean(R.bool.cinematic_home);
         boolean ambientGlow = res.getBoolean(R.bool.ambient_glow);
         boolean appGlow = res.getBoolean(R.bool.app_glow);
@@ -570,6 +599,7 @@ final class Config {
             launchActions = stringList(json, "launch_actions", launchActions);
             appLabels = stringList(json, "app_labels", appLabels);
             appBanners = stringList(json, "app_banners", appBanners);
+            appIcons = stringList(json, "app_icons", appIcons);
             panelService = string(json, "source_panel_service", panelService);
             panelAction = string(json, "source_panel_action", panelAction);
             panelExtra = string(json, "source_panel_extra", panelExtra).trim();
@@ -628,6 +658,8 @@ final class Config {
             handleViewInputs = bool(json, "handle_view_inputs", handleViewInputs);
             appKeys = stringList(json, "app_keys", appKeys);
             stockHomeRedirect = string(json, "stock_home_redirect", stockHomeRedirect);
+            windowRedirects = stringList(json, "window_redirects", windowRedirects);
+            fireRemoteBtPowerMac = string(json, "fire_remote_bt_power_mac", fireRemoteBtPowerMac);
             cinematic = bool(json, "cinematic_home", cinematic);
             ambientGlow = bool(json, "ambient_glow", ambientGlow);
             appGlow = bool(json, "app_glow", appGlow);
@@ -673,6 +705,8 @@ final class Config {
         }
         // A top-bar app is moved there, not copied: it leaves the grid.
         for (String pkg : topBarApps) if (!hidden.contains(pkg)) hidden.add(pkg);
+        // Never surface the redirected stock launcher in Home or the App library.
+        excludeRedirectTarget(hidden, libraryExcludedApps, stockHomeRedirect);
         // A theme push or reset invalidates choices made on the TV. On first use, remember the
         // current theme without clearing choices from an older launcher version.
         SharedPreferences choices = ctx.getSharedPreferences(SETTINGS_NAME, Context.MODE_PRIVATE);
@@ -719,14 +753,17 @@ final class Config {
         Festival festival = json == null ? Festival.NONE : Festival.parse(festivalName(json),
                 string(json, "festival_until", ""), string(json, "greeting", ""), string(json, "accent_color", ""));
 
-        return new Config(dock, fillDock, hidden, libraryApps, libraryExcludedApps, liveTv, liveTvAction, liveTvInputId, packageMap(launchActions), packageMap(appLabels),
-                packageMap(appBanners), panelService, panelAction, panelExtra, coocaaSources, inputAction, inputSources, inputUriScheme, Math.max(1, columns),
+        Map<String, String> launchActionMap = packageMap(launchActions);
+        ensureVeneziaStoreAction(launchActionMap, library);
+        return new Config(dock, fillDock, hidden, libraryApps, libraryExcludedApps, liveTv, liveTvAction, liveTvInputId, launchActionMap, packageMap(appLabels),
+                packageMap(appBanners), packageMap(appIcons), panelService, panelAction, panelExtra, coocaaSources, inputAction, inputSources, inputUriScheme, Math.max(1, columns),
                 Math.max(0, rowsBelow), animations, advancedEffects, shamsi, greetingName, moduleCards, reducedMotion, bootToLiveTv,
                 openOnStartChoice, dockTitle, dockRow, topMenu, launcherSettingsButton, reorderButton, showNetworkPill, showInputsPill,
                 iconOnlyButtons, iconOnlyInputs, libraryButton, showLibraryPill, wifiLabelWidth, alwaysShowNames, wallpaperTrueColor, focusOvershoot,
                 vpn, homeSettings, showStats, gameDay, library, librarySelection, libraryOkOpens, uniformTiles, background,
                 Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, restoreKeyServices, wallpaperEnabled, wallpaper,
                 wallpapers, rotationMinutes, wallpaperDim, dockOpacity, wallpaperOrder, applied, festival, inputKeycodes, appKeys, stockHomeRedirect,
+                windowRedirects, fireRemoteBtPowerMac,
                 json == null ? Collections.emptyList() : raceCalendar(json), cinematic, ambientGlow, appGlow, fadeRows,
                 Math.max(0, idleClockMinutes), keyFilter, dockGlass, glowStyle, wallpaperCaptions, handleViewInputs, tileMenu, dockEvenPadding,
                 dockBand, cinematicDots, cinematicWhiteFocus, wifiStatusColor, cinematicScrim, cinematicArt, wallpaperMoods, gamepadPassthrough,
