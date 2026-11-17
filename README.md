@@ -9,7 +9,8 @@
 ## Features
 
 - **Pure Dark Canvas (`#0E0F12`):** Zero wallpaper noise, zero ambient glow, ideal for OLED and high-contrast TVs.
-- **5-Column Minimalist Home:** Adjustable `dock_margin_top` (`145`), `focus_scale` (`1.25x`), rim-only focus highlight (`glass_style: "rim"`), and optional silent startup (`initial_focus: false`).
+- **5-Column Minimalist Home:** Uniform grid (`dock_row: false`) or optional dock row with `dock_edit`, adjustable `dock_margin_top` (`145`), `focus_scale` (`1.25x`), rim-only focus highlight (`glass_style: "rim"`), and optional silent startup (`initial_focus: false`).
+- **Independent Package Identity (`2.0.0+`):** Uses `im.marin.onyxtv` (`Onyx`) with custom app icon and banner (`img/logo/`), so it can coexist side-by-side with `com.gathin.tvhome` without replacing it.
 - **6-Column App Library Grid:** Clean grid app drawer (`AppLibraryDialog`) with on-home indicator and context menu on long-press OK.
 - **Icon-Only Top Toolbar:** Floating icon-only controls (App Library, Inputs, Settings) without extra pills or clutter.
 - **Fire OS 7 Support:** Generic `stock_home_redirect` handling (`BootReceiver`, `GuardRevival`, `GuardKeep`, standby wake return), Appstore storefront routing (`FEATURED_LAUNCH`), Apps grid interception (`library`), Bluetooth adapter name sync, optional BLE `fire_remote_bt_power_mac` guard, and configurable `window_redirects`.

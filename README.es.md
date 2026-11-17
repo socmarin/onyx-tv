@@ -9,7 +9,8 @@
 ## Características
 
 - **Fondo negro puro (`#0E0F12`):** sin fondos de pantalla ni brillos ambientales, ideal para televisores OLED y de alto contraste.
-- **Home minimalista de 5 columnas:** `dock_margin_top` (`145`) y `focus_scale` (`1.25x`) ajustables, resaltado de foco fino (`glass_style: "rim"`) y arranque silencioso opcional (`initial_focus: false`).
+- **Home minimalista de 5 columnas:** rejilla uniforme (`dock_row: false`) o fila de dock opcional con `dock_edit`, `dock_margin_top` (`145`) y `focus_scale` (`1.25x`) ajustables, resaltado de foco fino (`glass_style: "rim"`) y arranque silencioso opcional (`initial_focus: false`).
+- **Identificador propio (`2.0.0+`):** usa `im.marin.onyxtv` (`Onyx`) con icono y banner propios (`img/logo/`), permitiendo convivir en paralelo con `com.gathin.tvhome` sin pisarlo.
 - **Bóveda de aplicaciones en cuadrícula (6 columnas):** cajón de apps limpio (`AppLibraryDialog`) con indicador de apps fijadas en la Home y menú contextual al mantener pulsado OK.
 - **Barra superior solo con iconos:** botones flotantes (Aplicaciones, Entradas, Ajustes) sin píldoras ni texto extra.
 - **Soporte Fire OS 7:** gestión genérica con `stock_home_redirect` (`BootReceiver`, `GuardRevival`, `GuardKeep`, retorno tras reposo), apertura directa de Appstore (`FEATURED_LAUNCH`), intercepción del grid de Apps hacia la bóveda (`library`), resincronización del nombre Bluetooth, guarda opcional `fire_remote_bt_power_mac` y `window_redirects` configurables.

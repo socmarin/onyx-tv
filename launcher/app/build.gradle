@@ -3,18 +3,18 @@ plugins {
 }
 
 android {
-    namespace 'com.gathin.tvhome'
+    namespace 'im.marin.onyxtv'
     compileSdk 34
 
     defaultConfig {
         // Opt-in identity for firmware with a package-name HOME allowlist.
         // Xiaomi: docs/devices/xiaomi-mitv-aetp0-dofus.md (com.ts.launcher).
         // ColorOS TV: docs/devices/oppo-k9-55-oppocnm632.md (com.oneplus.tv.launcher2).
-        applicationId providers.gradleProperty('launcherApplicationId').getOrElse('com.gathin.tvhome')
+        applicationId providers.gradleProperty('launcherApplicationId').getOrElse('im.marin.onyxtv')
         minSdk 26
         targetSdk 34
-        versionCode 14
-        versionName '3.5'
+        versionCode 1
+        versionName '2.0.0'
     }
 
     buildTypes {

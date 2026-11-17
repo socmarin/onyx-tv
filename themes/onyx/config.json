@@ -1,6 +1,6 @@
 {
   "columns": 5,
-  "dock_row": true,
+  "dock_row": false,
   "fill_dock": true,
   "dock_margin_top": 145,
   "focus_scale": 1.25,
