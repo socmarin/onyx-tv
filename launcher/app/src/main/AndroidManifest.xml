@@ -22,6 +22,7 @@
          list (ServiceRepair). Granted with pm grant by build-and-install when a helper is enabled. -->
     <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
     <uses-permission android:name="android.permission.READ_TV_LISTINGS"
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="com.android.providers.tv.permission.READ_EPG_DATA" />
@@ -53,6 +54,10 @@
             <data android:scheme="package" />
         </intent>
         <intent>
+            <action android:name="android.intent.action.DELETE" />
+            <data android:scheme="package" />
+        </intent>
+        <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
@@ -76,6 +81,8 @@
         <package android:name="com.amazon.tv.launcher" />
         <package android:name="com.amazon.tv.livetv" />
         <package android:name="com.amazon.device.bluetoothkeymaplib" />
+        <package android:name="com.vewd.core.tvapp" />
+        <package android:name="com.mediatek.wwtv.tvcenter" />
         <!-- Coocaa OS sources for the Inputs menu (coocaa_sources); see CoocaaSources. -->
         <provider android:authorities="com.skyworth.tv.provider" />
         <provider android:authorities="com.skyworth.tv.sdk.provider" />
@@ -84,6 +91,7 @@
     <application
         android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:banner="@drawable/banner"
         android:theme="@style/Theme.TvHome"
         android:allowBackup="false"
@@ -121,6 +129,7 @@
             android:name=".LauncherSettingsActivity"
             android:exported="false"
             android:excludeFromRecents="true"
+            android:launchMode="singleTop"
             android:screenOrientation="landscape" />
         <!-- The system input switcher (com.android.tv.action.VIEW_INPUTS), which is what the remote's Input
              button becomes through the TV's Live TV app or InputKeyService. Disabled here and switched on by

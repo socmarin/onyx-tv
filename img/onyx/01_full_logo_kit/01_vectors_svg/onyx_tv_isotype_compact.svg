@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000">
+  <defs>
+    <linearGradient id="oledSheen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.032"/>
+      <stop offset="48%" stop-color="#FFFFFF" stop-opacity="0.012"/>
+      <stop offset="48.5%" stop-color="#FFFFFF" stop-opacity="0.0"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.0"/>
+    </linearGradient>
+    <radialGradient id="ledHalo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FF2A2A" stop-opacity="0.85"/>
+      <stop offset="35%" stop-color="#E51C23" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#E51C23" stop-opacity="0.0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1000" height="1000" fill="#222222"/>
+  <rect x="482" y="680" width="36" height="36" fill="#3E3E3E"/>
+  <polygon points="360,726 376,716 624,716 640,726" fill="#484848"/>
+  <rect x="140" y="260" width="720" height="420" rx="8" ry="8" fill="#3A3A3A" stroke="#525252" stroke-width="2"/>
+  <rect x="154" y="274" width="692" height="378" rx="2" ry="2" fill="#000000"/>
+  <rect x="154" y="274" width="692" height="378" rx="2" ry="2" fill="url(#oledSheen)"/>
+  <path d="M 456.88,365.00 L 543.12,365.00 L 592.12,414.00 L 592.12,512.00 L 543.12,561.00 L 456.88,561.00 L 407.88,512.00 L 407.88,414.00 Z M 443.88,434.32 L 443.88,491.68 L 477.20,525.00 L 522.80,525.00 L 556.12,491.68 L 556.12,434.32 L 522.80,401.00 L 477.20,401.00 Z" fill="#E0E0E0" fill-rule="evenodd"/>
+  <circle cx="500" cy="666" r="22" fill="url(#ledHalo)"/>
+  <circle cx="500" cy="666" r="4" fill="#FF2A2A"/>
+</svg>

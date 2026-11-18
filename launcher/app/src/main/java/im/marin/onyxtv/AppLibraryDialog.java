@@ -100,6 +100,7 @@ final class AppLibraryDialog {
     private final Map<String, Long> installTimes = new HashMap<>();
     private final Map<String, String> labels = new HashMap<>();
     private final Map<String, String> customLabels;
+    private final Map<String, String> customIcons;
     private long catalogTime;
     private PopupWindow actionPopup;
     private RecyclerView catalog;
@@ -169,23 +170,32 @@ final class AppLibraryDialog {
     /** library_excluded_apps (config.xml), never offered in the catalogue; empty by default, so existing
      *  setups are unaffected. See LibraryApps.excludedFromCatalog(). */
     private final Set<String> excludedApps;
-    private final Map<String, String> appIcons;
     private final Map<String, String> launchActions;
     private final java.util.function.Consumer<String> onOpenInput;
+    private final boolean showSelfSettings;
+    private final Runnable onOpenSettings;
+    private final boolean menuOpen;
+    private final boolean menuUninstall;
+    private final boolean menuAppInfo;
 
-    AppLibraryDialog(Activity activity, boolean animations, boolean reducedMotion, boolean selectionMode, boolean okOpens, Predicate<String> onHome, Runnable changed, Runnable dismissed, Set<String> excludedApps, Map<String, String> customLabels, Map<String, String> appIcons, Map<String, String> launchActions, java.util.function.Consumer<String> onOpenInput) {
+    AppLibraryDialog(Activity activity, boolean animations, boolean reducedMotion, boolean selectionMode, boolean okOpens, boolean showSelfSettings, Runnable onOpenSettings, boolean menuOpen, boolean menuUninstall, boolean menuAppInfo, Predicate<String> onHome, Runnable changed, Runnable dismissed, Set<String> excludedApps, Map<String, String> customLabels, Map<String, String> customIcons, Map<String, String> launchActions, java.util.function.Consumer<String> onOpenInput) {
         this.activity = activity;
         this.animations = animations;
         this.rtl = activity.getResources().getBoolean(R.bool.rtl_app_grid);
         this.reducedMotion = reducedMotion;
         this.selectionMode = selectionMode;
         this.okOpens = okOpens && !selectionMode;
+        this.showSelfSettings = showSelfSettings;
+        this.onOpenSettings = onOpenSettings;
+        this.menuOpen = menuOpen;
+        this.menuUninstall = menuUninstall;
+        this.menuAppInfo = menuAppInfo;
         this.onHome = onHome;
         this.changed = changed;
         this.dismissed = dismissed;
         this.excludedApps = excludedApps;
         this.customLabels = customLabels;
-        this.appIcons = appIcons;
+        this.customIcons = customIcons;
         this.launchActions = launchActions;
         this.onOpenInput = onOpenInput;
         density = activity.getResources().getDisplayMetrics().density;
@@ -263,6 +273,7 @@ final class AppLibraryDialog {
         int load = loads.start(reveal);
         PackageManager pm = activity.getPackageManager();
         String self = activity.getPackageName();
+        boolean includeSelf = showSelfSettings && onOpenSettings != null;
         LOADER.execute(() -> {
             Map<String, ResolveInfo> unique = new LinkedHashMap<>();
             Set<String> tv = new HashSet<>();
@@ -272,7 +283,7 @@ final class AppLibraryDialog {
                     if (info.activityInfo == null || !info.activityInfo.exported) continue;
                     String pkg = info.activityInfo.packageName;
                     if (Intent.CATEGORY_LEANBACK_LAUNCHER.equals(category)) tv.add(pkg);
-                    if (!pkg.equals(self) && !LibraryApps.excludedFromCatalog(excludedApps, pkg) && !unique.containsKey(pkg)) unique.put(pkg, info);
+                    if (LibraryApps.includeInCatalog(excludedApps, pkg, self, includeSelf) && !unique.containsKey(pkg)) unique.put(pkg, info);
                 }
             }
             Map<String, String> names = new HashMap<>();
@@ -346,33 +357,24 @@ final class AppLibraryDialog {
         catch (RuntimeException unavailable) { return pkg; }
     }
 
-    private Drawable customIcon(String pkg) {
-        String name = appIcons != null ? appIcons.get(pkg) : null;
-        if (name == null || name.isEmpty()) return null;
-        Drawable external = CustomArt.loadDrawable(activity, CustomArt.ICONS_DIR, name, 256, 256);
-        if (external != null) return external;
-        if (!name.startsWith("ic_")) return null;
-        int id = activity.getResources().getIdentifier(name, "drawable", activity.getPackageName());
-        return id != 0 ? activity.getDrawable(id) : null;
-    }
-
     /** The app's icon from this opening's cache, or loaded on LOADER and set once it arrives. */
     private void bindIcon(ImageView icon, ResolveInfo app) {
         String pkg = app.activityInfo.packageName;
         icon.setTag(pkg);
-        Drawable custom = customIcon(pkg);
-        if (custom != null) {
-            icon.setImageDrawable(custom);
-            return;
-        }
         Drawable cached = icons.get(pkg);
         icon.setImageDrawable(cached);
         if (cached != null || !iconsLoading.add(pkg)) return;
         PackageManager pm = activity.getPackageManager();
         LOADER.execute(() -> {
-            Drawable loaded;
-            try { loaded = app.loadIcon(pm); }
-            catch (RuntimeException unavailable) { loaded = null; }
+            Drawable loaded = null;
+            String customRef = customIcons != null ? customIcons.get(pkg) : null;
+            if (customRef != null && !customRef.isEmpty()) {
+                loaded = AppAdapter.customIcon(activity, customRef);
+            }
+            if (loaded == null) {
+                try { loaded = app.loadIcon(pm); }
+                catch (RuntimeException unavailable) { loaded = null; }
+            }
             Drawable result = loaded;
             main.post(() -> {
                 iconsLoading.remove(pkg);
@@ -393,7 +395,24 @@ final class AppLibraryDialog {
         panel.addView(title, new LinearLayout.LayoutParams(-1, -2));
     }
 
+    private boolean isSelf(String pkg) {
+        return showSelfSettings && onOpenSettings != null && activity.getPackageName().equals(pkg);
+    }
+
+    private void openSelfSettings() {
+        close();
+        if (onOpenSettings != null) onOpenSettings.run();
+    }
+
     /** Reuse translated actions instead of shipping another hint in every locale. */
+    private String hintFor(String pkg) {
+        if (isSelf(pkg)) {
+            return activity.getString(R.string.launcher_settings) + "  ·  OK: "
+                    + activity.getString(R.string.library_open);
+        }
+        return hint(onHome.test(pkg));
+    }
+
     private String hint(boolean home) {
         if (selectionMode) return activity.getString(android.R.string.ok) + ": "
                 + activity.getString(home ? R.string.library_remove_shortcut : R.string.library_add_home);
@@ -506,29 +525,10 @@ final class AppLibraryDialog {
             return;
         }
         selectedOffset = 0;
-        if (add && catalog != null) {
-            RecyclerView.ViewHolder holder = catalog.findViewHolderForAdapterPosition(selectedPosition);
-            if (holder != null) {
-                View card = holder.itemView;
-                RecyclerView.LayoutParams params = (RecyclerView.LayoutParams) card.getLayoutParams();
-                selectedOffset = rtl
-                        ? catalog.getWidth() - catalog.getPaddingRight()
-                            - catalog.getLayoutManager().getDecoratedRight(card) - params.rightMargin
-                        : catalog.getLayoutManager().getDecoratedLeft(card)
-                            - params.leftMargin - catalog.getPaddingLeft();
-            }
-            // Advance through missing shortcuts instead of following the newly checked app
-            // into the Home group. Preserve its screen slot when the catalogue is rebuilt.
-            int next = LibraryApps.nextFocus(selectedPosition, apps.size(),
-                    index -> !onHome.test(apps.get(index).activityInfo.packageName));
-            if (next >= 0) {
-                selectedPackage = apps.get(next).activityInfo.packageName;
-                selectedPosition = next;
-            }
-        }
+        selectedPackage = app.activityInfo.packageName;
         dismissActions();
         changed.run();
-        refresh();
+        if (instructions != null) instructions.setText(hintFor(selectedPackage));
     }
 
     private void updateSelectionFocus(ResolveInfo app, boolean add) {
@@ -551,9 +551,14 @@ final class AppLibraryDialog {
     }
 
     private void open(ResolveInfo app) {
+        if (isSelf(app.activityInfo.packageName)) {
+            openSelfSettings();
+            return;
+        }
         FireHomeRedirect.cancelActive();
         close();
         String pkg = app.activityInfo.packageName;
+        HomeKeyService.noteExplicitAppLaunch(pkg);
         String action = launchActions != null ? launchActions.get(pkg) : null;
         String inputId = LaunchActions.inputId(action);
         if (inputId != null && onOpenInput != null) {
@@ -596,16 +601,23 @@ final class AppLibraryDialog {
         boolean home = onHome.test(pkg);
         addAction(rows, home ? R.string.library_remove_shortcut : R.string.library_add_home,
                 () -> changeHome(app, !home), showTime);
-        addAction(rows, R.string.library_open, () -> open(app), showTime);
-        Intent info = SystemSettings.appInfo(activity, pkg);
-        if (info != null) addAction(rows, R.string.library_app_info, () -> {
-            close();
-            try {
-                activity.startActivity(info);
-            } catch (ActivityNotFoundException | SecurityException e) {
-                Toast.makeText(activity, activity.getString(R.string.cant_open, label(app)), Toast.LENGTH_SHORT).show();
+        if (menuOpen) addAction(rows, R.string.library_open, () -> open(app), showTime);
+        if (menuUninstall) {
+            Intent uninstall = SystemSettings.uninstallIntent(activity, pkg);
+            if (uninstall != null) {
+                addAction(rows, R.string.library_uninstall, () -> launchDialogIntent(uninstall, app), showTime);
             }
-        }, showTime);
+        }
+        if (menuAppInfo) {
+            Intent info = SystemSettings.appInfo(activity, pkg);
+            if (info != null) {
+                addAction(rows, R.string.library_app_info, () -> launchDialogIntent(info, app), showTime);
+            }
+        }
+        if (rows.getChildCount() == 0) {
+            dismissActions();
+            return;
+        }
         int menuWidth = dp(220);
         for (int i = 0; i < rows.getChildCount(); i++) {
             TextView title = rows.getChildAt(i).findViewById(R.id.title);
@@ -631,6 +643,15 @@ final class AppLibraryDialog {
         menuPanel.animate().alpha(1f).scaleY(1f).translationY(0f).setDuration(reducedMotion ? Motion.REDUCED_MS : 220)
                 .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
         rows.getChildAt(0).requestFocus();
+    }
+
+    private void launchDialogIntent(Intent intent, ResolveInfo app) {
+        close();
+        try {
+            activity.startActivity(intent);
+        } catch (ActivityNotFoundException | SecurityException e) {
+            Toast.makeText(activity, activity.getString(R.string.cant_open, label(app)), Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void addAction(LinearLayout rows, int label, Runnable action, long showTime) {
@@ -728,15 +749,21 @@ final class AppLibraryDialog {
         @Override public void onBindViewHolder(@NonNull Row holder, int position) {
             ResolveInfo app = apps.get(position);
             String pkg = app.activityInfo.packageName;
+            boolean selfEntry = isSelf(pkg);
+            boolean blockActions = selectionMode || selfEntry;
             bindIcon(holder.icon, app);
             holder.name.setText(label(app));
 
             holder.card.setOnClickListener(v -> {
+                if (selfEntry) {
+                    openSelfSettings();
+                    return;
+                }
                 boolean onHomeNow = onHome.test(pkg);
                 if (LibraryApps.okOpens(selectionMode, okOpens, onHomeNow)) open(app);
                 else changeHome(app, !onHomeNow);
             });
-            holder.card.setOnLongClickListener(selectionMode ? null : v -> { showActions(app, v); return true; });
+            holder.card.setOnLongClickListener(blockActions ? null : v -> { showActions(app, v); return true; });
 
             boolean isFocused = holder.card.isFocused();
             holder.card.setScaleX(isFocused ? 1.25f : 1f);
@@ -749,7 +776,7 @@ final class AppLibraryDialog {
                     cancelHold();
                     selectedPackage = pkg;
                     selectedPosition = holder.getBindingAdapterPosition();
-                    instructions.setText(hint(onHome.test(pkg)));
+                    instructions.setText(hintFor(pkg));
                     v.animate().scaleX(1.25f).scaleY(1.25f).translationZ(dp(10)).setDuration(160).start();
                     holder.name.animate().alpha(1.0f).setDuration(160).start();
                 } else {
@@ -769,7 +796,7 @@ final class AppLibraryDialog {
                         if (index >= lastRowStart) return true;
                     }
                     if (isOkKey(key)) {
-                        if (selectionMode) return false;
+                        if (blockActions) return false;
                         if (event.getRepeatCount() == 0) {
                             holdFired = false;
                             main.removeCallbacks(holdTimer);
@@ -795,7 +822,7 @@ final class AppLibraryDialog {
                             return true;
                         }
                     }
-                    if (!selectionMode && (key == KeyEvent.KEYCODE_MENU || key == KeyEvent.KEYCODE_WINDOW)) {
+                    if (!blockActions && (key == KeyEvent.KEYCODE_MENU || key == KeyEvent.KEYCODE_WINDOW)) {
                         showActions(app, v);
                         return true;
                     }

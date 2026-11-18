@@ -66,7 +66,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
     static final class Entry {
-        static final int APP = 0, HOME_SETTINGS = 1, CARD = 2, EMPTY = 3;
+        static final int APP = 0, HOME_SETTINGS = 1, CARD = 2, EMPTY = 3, INPUT = 4;
 
         final int kind;
         final String label;
@@ -216,18 +216,22 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final Map<String, String> launchActions;
     /** Hold OK opens the activity's tile menu (config.xml, tile_menu); false opens App info, as before. */
     private final boolean tileMenu;
-    /** Tile names, banners and icons that replace the app's own (config.xml / config.json). */
-    private final Map<String, String> appLabels, appBanners, appIcons;
+    /** Tile names, 1:1 icons and banners that replace the app's own (config.xml / config.json / settings). */
+    private final Map<String, String> appLabels, appIcons, appBanners;
+    /** Packages hidden by the user on the TV from both Home and Bóveda. */
+    private final Set<String> userHiddenApps;
     /** Every app tile is its icon on a card tinted from that icon, never its banner (config.xml, uniform_tiles). */
     private final boolean uniformTiles;
     /** Packages drawn from their icon and name even when they have a banner (config.xml icon_tiles). */
     private final Set<String> iconTiles;
+    private final Config cfg;
     private final List<Entry> items = new ArrayList<>();
 
     AppAdapter(Context ctx, TileListener listener, int dockSize, Config cfg) {
         this.ctx = ctx;
         this.listener = listener;
         this.dockSize = dockSize;
+        this.cfg = cfg;
         this.favourites = cfg.dockApps;
         this.fillDock = cfg.fillDock;
         this.hidden = new HashSet<>(cfg.hiddenApps);
@@ -249,8 +253,9 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.iconTiles = new HashSet<>(Arrays.asList(ctx.getResources().getStringArray(R.array.icon_tiles)));
         this.tileMenu = cfg.tileMenu;
         this.appLabels = cfg.appLabels;
-        this.appBanners = cfg.appBanners;
         this.appIcons = cfg.appIcons;
+        this.appBanners = cfg.appBanners;
+        this.userHiddenApps = cfg.userHiddenApps;
         this.uniformTiles = cfg.uniformTiles;
         this.customFocusScale = cfg.focusScale;
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
@@ -282,6 +287,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                         && seen.add(ri.activityInfo.packageName)) found.add(ri);
             }
         }
+        List<TvInputTiles.TileSpec> activeInputs = TvInputTiles.active(ctx, cfg);
+        String suppressedLiveTv = TvInputTiles.ownedLiveTvPackage(ctx, cfg);
         Map<String, Cards.Card> cardByPkg = new HashMap<>();
         for (Cards.Card c : cards) cardByPkg.put(c.pkg, c);
         List<Entry> fresh = new ArrayList<>();
@@ -291,7 +298,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         for (ResolveInfo ri : found) {
             if (ri.activityInfo == null) continue;
             String pkg = ri.activityInfo.packageName;
-            if (pkg.equals(ctx.getPackageName()) || !ri.activityInfo.exported
+            if (pkg.equals(ctx.getPackageName()) || pkg.equals(suppressedLiveTv) || !ri.activityInfo.exported
+                    || cfg.userHiddenApps.contains(pkg)
                     || !LibraryApps.visible(tvPackages.contains(pkg), hidden.contains(pkg), added.contains(pkg), removed.contains(pkg))) continue;
             ComponentName component = new ComponentName(pkg, ri.activityInfo.name);
             Cards.Card card = cardByPkg.get(pkg);
@@ -301,37 +309,41 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             String label = card != null ? card.label : Cards.cleanLabel(
                     appLabels.containsKey(pkg) ? appLabels.get(pkg) : String.valueOf(ri.loadLabel(pm)), pkg);
             if (!seen.add(pkg + '\n' + label)) continue;
+            Drawable customAppIcon = customIcon(ctx, appIcons.get(pkg));
             Drawable banner = null;
             // uniform_tiles draws the icon, so an app's banner is never loaded. A module card keeps its banner.
             if (!(uniformTiles && card == null)) {
-                banner = customBanner(appBanners.get(pkg));
+                banner = customAppBanner(ctx, appBanners.get(pkg));
                 if (banner == null) {
-                    Drawable iconOverride = customIcon(pkg);
                     if (iconTiles.contains(pkg)) {
-                        banner = iconBanner(iconOverride != null ? iconOverride : ri.loadIcon(pm));
+                        banner = iconBanner(ctx, customAppIcon != null ? customAppIcon : ri.loadIcon(pm));
                     } else {
-                        banner = loadBanner(pm, ri);
+                        banner = loadBanner(ctx, pm, ri);
                     }
                 }
             }
             // The icon is only drawn (and sampled for the glow) when there is no banner, so a tile with a
             // banner skips loading and decoding it.
-            Drawable icon = null;
-            if (banner == null) {
-                icon = customIcon(pkg);
-                if (icon == null) icon = ri.loadIcon(pm);
-            }
+            Drawable icon = banner == null ? (customAppIcon != null ? customAppIcon : ri.loadIcon(pm)) : null;
             if (card != null) {
                 fresh.add(new Entry(Entry.CARD, label, component, banner, icon, card.caption, card.accent));
             } else {
                 fresh.add(new Entry(label, component, banner, icon));
             }
         }
+        for (TvInputTiles.TileSpec spec : activeInputs) {
+            fresh.add(inputEntry(ctx, cfg, spec));
+        }
+        String tunerPkg = suppressedLiveTv != null ? TvInputTiles.INPUT_PREFIX + tunerInputId(activeInputs) : null;
+        String fallbackOrderKey = fallbackLiveTvOrderKey(savedRanks, suppressedLiveTv);
         Collections.sort(fresh, (a, b) -> {
             // The owner's own order first; tiles it does not know (new installs) follow by the rule below.
-            int saved = Order.compare(savedRanks, a.component.flattenToShortString(), b.component.flattenToShortString());
+            int saved = Order.compare(savedRanks,
+                    orderKey(savedRanks, a.component, a.pkg, tunerPkg, fallbackOrderKey),
+                    orderKey(savedRanks, b.component, b.pkg, tunerPkg, fallbackOrderKey));
             if (saved != 0) return saved;
-            int fa = favourites.indexOf(a.pkg), fb = favourites.indexOf(b.pkg);
+            int fa = dockIndex(favourites, a.pkg, tunerPkg, cfg.liveTvPackage);
+            int fb = dockIndex(favourites, b.pkg, tunerPkg, cfg.liveTvPackage);
             if (fa >= 0 || fb >= 0) {
                 if (fa < 0) return 1;
                 if (fb < 0) return -1;
@@ -343,8 +355,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             return a.label.compareToIgnoreCase(b.label);
         });
         // Retain the optional Default-home tile until dependent tile-ordering work is merged.
-        if (showHomeSettings
-                && pm.resolveActivity(new Intent(Settings.ACTION_HOME_SETTINGS), 0) != null) {
+        if (showHomeSettings && SystemSettings.hasHomePicker(ctx, "")) {
             fresh.add(new Entry(Entry.HOME_SETTINGS, ctx.getString(R.string.home_settings),
                     new ComponentName(ctx, HomeSettingsActivity.class), null,
                     ctx.getDrawable(R.drawable.ic_home_settings), null, 0));
@@ -361,8 +372,149 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         notifyDataSetChanged();
     }
 
+    /** Lightweight ordered Home entries (top {@code limit}) for Settings' live miniature preview. */
+    static List<Entry> loadHomePreviewEntries(Context ctx, Config cfg, int limit) {
+        PackageManager pm = ctx.getPackageManager();
+        List<ResolveInfo> found = new ArrayList<>(pm.queryIntentActivities(
+                new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER), 0));
+        Set<String> tvPackages = new HashSet<>();
+        for (ResolveInfo ri : found) if (ri.activityInfo != null) tvPackages.add(ri.activityInfo.packageName);
+        Set<String> added = new HashSet<>(LibraryApps.load(ctx));
+        added.addAll(cfg.libraryApps);
+        Set<String> removed = LibraryApps.loadRemoved(ctx);
+        if (!added.isEmpty()) {
+            Set<String> seen = new HashSet<>(tvPackages);
+            for (ResolveInfo ri : pm.queryIntentActivities(
+                    new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0)) {
+                if (ri.activityInfo != null && added.contains(ri.activityInfo.packageName)
+                        && seen.add(ri.activityInfo.packageName)) found.add(ri);
+            }
+        }
+        List<TvInputTiles.TileSpec> activeInputs = TvInputTiles.active(ctx, cfg);
+        String suppressedLiveTv = TvInputTiles.ownedLiveTvPackage(ctx, cfg);
+        Set<String> hidden = new HashSet<>(cfg.hiddenApps);
+        List<PreviewCandidate> candidates = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        for (ResolveInfo ri : found) {
+            if (ri.activityInfo == null) continue;
+            String pkg = ri.activityInfo.packageName;
+            if (pkg.equals(ctx.getPackageName()) || pkg.equals(suppressedLiveTv) || !ri.activityInfo.exported
+                    || cfg.userHiddenApps.contains(pkg)
+                    || !LibraryApps.visible(tvPackages.contains(pkg), hidden.contains(pkg), added.contains(pkg), removed.contains(pkg))) continue;
+            String label = Cards.cleanLabel(
+                    cfg.appLabels.containsKey(pkg) ? cfg.appLabels.get(pkg) : String.valueOf(ri.loadLabel(pm)), pkg);
+            if (!seen.add(pkg + '\n' + label)) continue;
+            candidates.add(new PreviewCandidate(ri, null, label, pkg, new ComponentName(pkg, ri.activityInfo.name)));
+        }
+        for (TvInputTiles.TileSpec spec : activeInputs) {
+            candidates.add(new PreviewCandidate(null, spec, inputLabel(cfg, spec), spec.pkg, spec.component()));
+        }
+        String tunerPkg = suppressedLiveTv != null ? TvInputTiles.INPUT_PREFIX + tunerInputId(activeInputs) : null;
+        Map<String, Integer> savedRanks = Order.ranks(Order.load(Order.file(ctx)), cfg.dockApps);
+        String fallbackOrderKey = fallbackLiveTvOrderKey(savedRanks, suppressedLiveTv);
+        candidates.sort((a, b) -> {
+            int saved = Order.compare(savedRanks,
+                    orderKey(savedRanks, a.component, a.pkg, tunerPkg, fallbackOrderKey),
+                    orderKey(savedRanks, b.component, b.pkg, tunerPkg, fallbackOrderKey));
+            if (saved != 0) return saved;
+            int fa = dockIndex(cfg.dockApps, a.pkg, tunerPkg, cfg.liveTvPackage);
+            int fb = dockIndex(cfg.dockApps, b.pkg, tunerPkg, cfg.liveTvPackage);
+            if (fa >= 0 || fb >= 0) {
+                if (fa < 0) return 1;
+                if (fb < 0) return -1;
+                return Integer.compare(fa, fb);
+            }
+            return a.label.compareToIgnoreCase(b.label);
+        });
+        int count = Math.min(limit, candidates.size());
+        List<Entry> out = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            PreviewCandidate c = candidates.get(i);
+            if (c.input != null) {
+                out.add(inputEntry(ctx, cfg, c.input));
+                continue;
+            }
+            Drawable banner = cfg.uniformTiles ? null : customAppBanner(ctx, cfg.appBanners.get(c.pkg));
+            if (!cfg.uniformTiles && banner == null) banner = loadBanner(ctx, pm, c.ri);
+            Drawable icon = null;
+            if (banner == null) {
+                icon = customIcon(ctx, cfg.appIcons.get(c.pkg));
+                if (icon == null) icon = c.ri.loadIcon(pm);
+            }
+            out.add(new Entry(c.label, c.component, banner, icon));
+        }
+        return out;
+    }
+
+    private static final class PreviewCandidate {
+        final ResolveInfo ri;
+        final TvInputTiles.TileSpec input;
+        final String label;
+        final String pkg;
+        final ComponentName component;
+
+        PreviewCandidate(ResolveInfo ri, TvInputTiles.TileSpec input, String label, String pkg, ComponentName component) {
+            this.ri = ri;
+            this.input = input;
+            this.label = label;
+            this.pkg = pkg;
+            this.component = component;
+        }
+    }
+
+    private static String fallbackLiveTvOrderKey(Map<String, Integer> savedRanks, String suppressedLiveTv) {
+        if (savedRanks == null || suppressedLiveTv == null || suppressedLiveTv.isEmpty()) return null;
+        String prefix = suppressedLiveTv + "/";
+        for (String key : savedRanks.keySet()) {
+            if (key.startsWith(prefix)) return key;
+        }
+        return null;
+    }
+
+    private static String orderKey(Map<String, Integer> savedRanks, ComponentName component,
+                                   String pkg, String tunerPkg, String fallbackKey) {
+        String key = component.flattenToShortString();
+        if (fallbackKey != null && !savedRanks.containsKey(key) && pkg.equals(tunerPkg)) {
+            return fallbackKey;
+        }
+        return key;
+    }
+
+    private static int dockIndex(List<String> dockApps, String pkg, String tunerPkg, String liveTvPkg) {
+        int idx = dockApps.indexOf(pkg);
+        if (idx < 0 && pkg.equals(tunerPkg) && liveTvPkg != null && !liveTvPkg.isEmpty()) {
+            return dockApps.indexOf(liveTvPkg);
+        }
+        return idx;
+    }
+
+    private static String tunerInputId(List<TvInputTiles.TileSpec> tiles) {
+        for (TvInputTiles.TileSpec spec : tiles) {
+            if (spec.kind == TvInputTiles.KIND_TUNER) return spec.inputId;
+        }
+        return "";
+    }
+
+    static String inputLabel(Config cfg, TvInputTiles.TileSpec spec) {
+        if (cfg.appLabels.containsKey(spec.pkg)) return cfg.appLabels.get(spec.pkg);
+        return spec.label;
+    }
+
+    private static Entry inputEntry(Context ctx, Config cfg, TvInputTiles.TileSpec spec) {
+        String label = inputLabel(cfg, spec);
+        String bannerRef = cfg.appBanners.get(spec.pkg);
+        Drawable banner = null;
+        if (!cfg.uniformTiles && !InputCustom.isPreset(bannerRef)) {
+            banner = customBanner(ctx, bannerRef);
+        }
+        if (banner == null) {
+            banner = TvInputTiles.renderBanner(ctx, spec, label, bannerRef);
+        }
+        return new Entry(Entry.INPUT, label, spec.component(), banner, null, null, 0);
+    }
+
     /** icon_tiles: the app's icon centred on a dark banner-shaped tile, for apps whose own banner crops badly. */
-    private Drawable iconBanner(Drawable icon) {
+    private static Drawable iconBanner(Context ctx, Drawable icon) {
         int w = 320, h = 180, side = 104;
         android.graphics.Bitmap bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888);
         android.graphics.Canvas canvas = new android.graphics.Canvas(bmp);
@@ -372,27 +524,30 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         return new android.graphics.drawable.BitmapDrawable(ctx.getResources(), bmp);
     }
 
+    /** Custom 1:1 icon from files/app_icons/, or null when absent. */
+    static Drawable customIcon(Context ctx, String name) {
+        return CustomArt.loadDrawable(ctx, CustomArt.APP_ICONS_DIR, name,
+                CustomArt.ICON_TARGET_SIZE, CustomArt.ICON_TARGET_SIZE);
+    }
+
+    /** Custom 16:9 app banner from files/app_banners/, falling back to files/banners/ or bundled banner_*. */
+    static Drawable customAppBanner(Context ctx, String name) {
+        Drawable appArt = CustomArt.loadDrawable(ctx, CustomArt.APP_BANNERS_DIR, name,
+                CustomArt.BANNER_TARGET_WIDTH, CustomArt.BANNER_TARGET_HEIGHT);
+        return appArt != null ? appArt : customBanner(ctx, name);
+    }
+
     /** Banner from files/banners/ first, then a bundled banner_* drawable, or null when absent. */
-    private Drawable customBanner(String name) {
-        Drawable external = CustomArt.loadDrawable(ctx, CustomArt.BANNERS_DIR, name, 640, 360);
+    static Drawable customBanner(Context ctx, String name) {
+        Drawable external = CustomArt.loadDrawable(ctx, CustomArt.BANNERS_DIR, name,
+                CustomArt.BANNER_TARGET_WIDTH, CustomArt.BANNER_TARGET_HEIGHT);
         if (external != null) return external;
         if (name == null || !name.startsWith("banner_")) return null;
         int id = ctx.getResources().getIdentifier(name, "drawable", ctx.getPackageName());
         return id != 0 ? ctx.getDrawable(id) : null;
     }
 
-    /** Icon override from files/icons/ or a bundled ic_* drawable, or null when unconfigured. */
-    private Drawable customIcon(String pkg) {
-        String name = appIcons.get(pkg);
-        if (name == null || name.isEmpty()) return null;
-        Drawable external = CustomArt.loadDrawable(ctx, CustomArt.ICONS_DIR, name, 256, 256);
-        if (external != null) return external;
-        if (!name.startsWith("ic_")) return null;
-        int id = ctx.getResources().getIdentifier(name, "drawable", ctx.getPackageName());
-        return id != 0 ? ctx.getDrawable(id) : null;
-    }
-
-    private Drawable loadBanner(PackageManager pm, ResolveInfo ri) {
+    private static Drawable loadBanner(Context ctx, PackageManager pm, ResolveInfo ri) {
         int id = ri.activityInfo.banner;
         if (id == 0) id = ri.activityInfo.applicationInfo.banner;
         Drawable banner = null;
@@ -576,6 +731,12 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             return;
         }
+        if (e.kind == Entry.INPUT) {
+            String inputId = TvInputTiles.inputIdFromPackage(e.pkg);
+            if (inputId != null) listener.onOpenInput(inputId);
+            return;
+        }
+        HomeKeyService.noteExplicitAppLaunch(e.pkg);
         Intent i = new Intent(Intent.ACTION_MAIN)
                 .setComponent(e.component)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);

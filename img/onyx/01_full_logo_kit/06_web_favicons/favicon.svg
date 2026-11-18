@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000">
+  <defs>
+    <linearGradient id="oledSheen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.032"/>
+      <stop offset="48%" stop-color="#FFFFFF" stop-opacity="0.012"/>
+      <stop offset="48.5%" stop-color="#FFFFFF" stop-opacity="0.0"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.0"/>
+    </linearGradient>
+    <radialGradient id="ledHalo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FF2A2A" stop-opacity="0.85"/>
+      <stop offset="35%" stop-color="#E51C23" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#E51C23" stop-opacity="0.0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1000" height="1000" fill="#222222"/>
+  <rect x="482" y="680" width="36" height="36" fill="#3E3E3E"/>
+  <polygon points="360,726 376,716 624,716 640,726" fill="#484848"/>
+  <rect x="140" y="260" width="720" height="420" rx="8" ry="8" fill="#3A3A3A" stroke="#525252" stroke-width="2"/>
+  <rect x="154" y="274" width="692" height="378" rx="2" ry="2" fill="#000000"/>
+  <rect x="154" y="274" width="692" height="378" rx="2" ry="2" fill="url(#oledSheen)"/>
+  <g fill="#E0E0E0" fill-rule="evenodd">
+    <path d="M 340.12,425.00 L 373.56,425.00 L 392.56,444.00 L 392.56,482.00 L 373.56,501.00 L 340.12,501.00 L 321.12,482.00 L 321.12,444.00 Z M 334.62,451.42 L 334.62,474.58 L 347.54,487.50 L 366.14,487.50 L 379.06,474.58 L 379.06,451.42 L 366.14,438.50 L 347.54,438.50 Z"/>
+    <path d="M 416.56,501.00 L 416.56,425.00 L 432.08,425.00 L 474.50,478.73 L 474.50,425.00 L 488.00,425.00 L 488.00,501.00 L 472.48,501.00 L 430.06,447.27 L 430.06,501.00 Z"/>
+    <path d="M 512.00,425.00 L 527.93,425.00 L 547.72,458.62 L 567.51,425.00 L 583.44,425.00 L 554.74,468.06 L 554.74,501.00 L 540.70,501.00 L 540.70,468.06 Z"/>
+    <path d="M 607.44,425.00 L 623.37,425.00 L 643.16,453.82 L 662.95,425.00 L 678.88,425.00 L 651.53,463.00 L 678.88,501.00 L 662.95,501.00 L 643.16,472.18 L 623.37,501.00 L 607.44,501.00 L 634.79,463.00 Z"/>
+  </g>
+  <circle cx="500" cy="666" r="22" fill="url(#ledHalo)"/>
+  <circle cx="500" cy="666" r="4" fill="#FF2A2A"/>
+</svg>

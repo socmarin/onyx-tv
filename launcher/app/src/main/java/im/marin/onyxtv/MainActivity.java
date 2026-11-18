@@ -134,6 +134,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean appLibraryEnabled;
     /** The same opt-in menu is available from either hold-OK or the remote's Menu key. */
     private boolean tileMenuEnabled;
+    private boolean tileMenuAppInfo;
+    private boolean tileMoveExitsReorder;
     private String inputAction;
     private List<String> inputSources;
     private String inputUriScheme;
@@ -310,6 +312,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private Set<String> hiddenApps = Collections.emptySet();
     /** library_excluded_apps: packages the App library catalogue never offers. */
     private Set<String> libraryExcludedApps = Collections.emptySet();
+    /** Hardware inputs hidden by the user in Onyx settings. */
+    private Set<String> hiddenInputs = Collections.emptySet();
     private List<Cards.Card> cards = Collections.emptyList();
     /** The grid has been laid out and focused since the last resume; the card prompt waits for this. */
     private boolean tilesReady;
@@ -334,6 +338,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private PopupWindow openPopup;
     /** Reorder mode is on (top-bar button). */
     private boolean reordering;
+    /** Reorder was started from a tile's Move action and exits as soon as that tile is placed. */
+    private boolean singleTileMove;
     /** Key of the tile being carried in reorder mode, or null. */
     private String movingKey;
     /** Tile order when reorder mode started, to save only when something moved. */
@@ -359,6 +365,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private AppLibraryDialog appLibrary;
     private boolean appLibrarySelection;
     private boolean libraryOkOpens;
+    private boolean libraryOnyxSettings;
+    private boolean showSettingsPill;
+    private boolean libraryMenuOpen;
+    private boolean libraryMenuUninstall;
+    private boolean libraryMenuAppInfo;
     private boolean libraryFocusPending;
     private Map<String, String> appLabels = Collections.emptyMap();
     private Map<String, String> appIcons = Collections.emptyMap();
@@ -393,16 +404,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (wifiNoInternetTint != null) handler.post(MainActivity.this::updateWifiLabel);
         }
     };
+    /** config input_tiles / Settings toggle: show physical TV inputs directly as tiles on Home. */
+    private boolean showInputTiles;
     /** Shows the Inputs pill once the TV registers an input: at boot HDMI inputs can appear after Home is shown. */
     private final TvInputManager.TvInputCallback inputCallback = new TvInputManager.TvInputCallback() {
         @Override
         public void onInputAdded(String inputId) {
             updateInputsButton();
+            if (showInputTiles) reloadApps(false);
         }
 
         @Override
         public void onInputRemoved(String inputId) {
             updateInputsButton();
+            if (showInputTiles) reloadApps(false);
         }
     };
     /** Listens for any VPN coming up or going down, even one this app's traffic is excluded from. */
@@ -456,9 +471,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     };
 
     private java.util.Map<Integer, String> homeAppKeys = java.util.Collections.emptyMap();
+    private java.util.Map<Integer, String> homeAppScancodes = java.util.Collections.emptyMap();
     /** clock_format, for the race panel's session times (the TextClocks take it in onCreate). */
     private String clockFormat = "system";
     private java.util.Map<Integer, String> homeHoldAppKeys = java.util.Collections.emptyMap();
+    private java.util.Map<Integer, String> homeHoldAppScancodes = java.util.Collections.emptyMap();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -491,11 +508,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             });
         }
         homeAppKeys = RemoteKeys.parseAppKeys(cfg.appKeys);
+        homeAppScancodes = RemoteKeys.parseAppScancodes(cfg.appKeys);
         clockFormat = cfg.clockFormat;
         ClockFormat.apply(getWindow().getDecorView(), clockFormat);
         homeHoldAppKeys = RemoteKeys.parseHoldAppKeys(cfg.appKeys);
+        homeHoldAppScancodes = RemoteKeys.parseHoldAppScancodes(cfg.appKeys);
         appLibrarySelection = cfg.appLibrarySelection;
         libraryOkOpens = cfg.libraryOkOpens;
+        libraryOnyxSettings = cfg.libraryOnyxSettings;
+        showSettingsPill = cfg.showSettingsPill;
+        libraryMenuOpen = cfg.libraryMenuOpen;
+        libraryMenuUninstall = cfg.libraryMenuUninstall;
+        libraryMenuAppInfo = cfg.libraryMenuAppInfo;
         appLabels = cfg.appLabels;
         appIcons = cfg.appIcons;
         launchActions = cfg.launchActions;
@@ -528,6 +552,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         liveTvInputId = cfg.liveTvInputId;
         appLibraryEnabled = cfg.appLibrary;
         tileMenuEnabled = cfg.tileMenu;
+        tileMenuAppInfo = cfg.tileMenuAppInfo;
+        tileMoveExitsReorder = cfg.tileMoveExitsReorder;
         inputAction = cfg.inputAction;
         inputSources = cfg.inputSources;
         inputUriScheme = cfg.inputUriScheme;
@@ -644,6 +670,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         moduleCards = cfg.moduleCards;
         hiddenApps = new HashSet<>(cfg.hiddenApps);
         libraryExcludedApps = new HashSet<>(cfg.libraryExcludedApps);
+        hiddenInputs = cfg.hiddenInputs;
 
         grid = findViewById(R.id.grid);
         rtlAppGrid = getResources().getBoolean(R.bool.rtl_app_grid);
@@ -874,8 +901,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnReorder.setOnClickListener(v -> toggleReorder());
         btnReorder.setVisibility(cfg.reorderButton ? View.VISIBLE : View.GONE);
         if (!cfg.showNetworkPill) btnWifi.setVisibility(View.GONE);
+        if (!cfg.showSettingsPill && !cfg.topMenu) btnSettings.setVisibility(View.GONE);
         showInputsPill = cfg.showInputsPill;
         showInputsMenuRow = cfg.showInputsPill;
+        showInputTiles = cfg.inputTiles;
         btnLibraryTop = findViewById(R.id.btnLibraryTop);
         btnLibraryTop.setOnClickListener(v -> {
             onLibraryRequested();
@@ -941,8 +970,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 return true;
             }
             int firstButton = firstTopButton().getId();
-            int leftButton = rtlMenuBar ? R.id.btnSettings : firstButton;
-            int rightButton = rtlMenuBar ? firstButton : R.id.btnSettings;
+            int lastButton = lastTopButton().getId();
+            int leftButton = rtlMenuBar ? lastButton : firstButton;
+            int rightButton = rtlMenuBar ? firstButton : lastButton;
             if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) return v.getId() == leftButton;
             return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == rightButton;
         };
@@ -1502,8 +1532,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Vendor keys (TCL Netflix button, 4062) never reach the key services, only the focused window, so their
         // "hold:" entries run here too or nowhere. Only while resumed: onPause releases Home's holds, and a DOWN
         // taken after that would arm one nothing releases.
-        if (resumed && event.getKeyCode() >= 1000 && RemoteKeys.handle(this, event, homeAppKeys.get(event.getKeyCode()),
-                homeHoldAppKeys.get(event.getKeyCode()))) return true;
+        if (resumed && !RemoteKeyCustom.isReservedNavigationKey(event.getKeyCode())) {
+            int scan = event.getScanCode();
+            if (scan > 0 && RemoteKeys.handle(this, event, homeAppScancodes.get(scan),
+                    homeHoldAppScancodes.get(scan))) return true;
+            if (RemoteKeys.handle(this, event, homeAppKeys.get(event.getKeyCode()),
+                    homeHoldAppKeys.get(event.getKeyCode()))) return true;
+        }
         if (handleSettingsKey(event)) return true;
         if (holdOk(event)) return true;
         if (tileMenuEnabled && !reordering && cardPrompt == null
@@ -1534,7 +1569,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     return true;
                 default:
                     if (ok || back) {
-                        if (!down) drop();
+                        if (!down) {
+                            if (singleTileMove) endReorder();
+                            else drop();
+                        }
                         return true;
                     }
                     return super.dispatchKeyEvent(event);
@@ -1731,6 +1769,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Ends the mode and saves the order if it changed since the mode started. */
     private void endReorder() {
         if (!reordering) return;
+        singleTileMove = false;
         dockEditing = false;
         dockEditSlot = -1;
         dockEditAppKey = null;
@@ -1852,7 +1891,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         libraryFocusPending = false;
         libraryFromTopBar = false;
         libraryFromVpnPill = false;
-        appLibrary = new AppLibraryDialog(this, animations, reducedMotion, appLibrarySelection, libraryOkOpens, adapter::containsPackage, () -> reloadApps(false), () -> {
+        Set<String> excluded = new HashSet<>(libraryExcludedApps);
+        String ownedLiveTv = TvInputTiles.ownedLiveTvPackage(this, Config.load(this));
+        if (ownedLiveTv != null) excluded.add(ownedLiveTv);
+        appLibrary = new AppLibraryDialog(this, animations, reducedMotion, appLibrarySelection, libraryOkOpens, libraryOnyxSettings || !showSettingsPill, () -> startActivityForResult(new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST), libraryMenuOpen, libraryMenuUninstall, libraryMenuAppInfo, adapter::containsPackage, () -> reloadApps(false), () -> {
             appLibrary = null;
             openPopup = null;
             if (libraryFromTopBar) {
@@ -1871,7 +1913,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             grid.post(() -> {
                 if (libraryFocusPending && appLibrary == null && hasWindowFocus() && !isFinishing()) focusLibrary();
             });
-        }, libraryExcludedApps, appLabels, appIcons, launchActions, this::openInput);
+        }, excluded, appLabels, appIcons, launchActions, this::openInput);
         openPopup = appLibrary.popup;
         appLibrary.show();
     }
@@ -2628,7 +2670,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         buttons.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> align.run());
     }
 
-    /** The first visible top-bar button in bar order (top_bar_apps, the library pill, inputs, ...); Settings is always there. */
+    /** The first visible top-bar button in bar order (top_bar_apps, the library pill, inputs, ...). */
     private View firstTopButton() {
         ViewGroup bar = findViewById(R.id.topButtons);
         // The Hebrew layout (layout-iw) lists the bar mirrored, Settings first and Inputs last, so bar order
@@ -2640,7 +2682,25 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             View button = bar.getChildAt(rtl ? n - 1 - k : k);
             if (button.getVisibility() == View.VISIBLE) return button;
         }
-        return findViewById(R.id.btnSettings);
+        return findViewById(R.id.btnLibraryTop);
+    }
+
+    /** The last visible top-bar button in bar order, accounting for hidden Settings/Inputs/Wi-Fi pills. */
+    private View lastTopButton() {
+        ViewGroup bar = findViewById(R.id.topButtons);
+        boolean rtl = getResources().getBoolean(R.bool.rtl_menu_bar);
+        int n = bar.getChildCount();
+        for (int k = n - 1; k >= 0; k--) {
+            View button = bar.getChildAt(rtl ? n - 1 - k : k);
+            if (button.getVisibility() == View.VISIBLE) return button;
+        }
+        return findViewById(R.id.btnLibraryTop);
+    }
+
+    /** Visible anchor for top-bar popups, falling back when a specific pill is hidden. */
+    private View visibleTopAnchor(int preferredId) {
+        View preferred = findViewById(preferredId);
+        return preferred != null && preferred.getVisibility() == View.VISIBLE ? preferred : lastTopButton();
     }
 
     /** top_bar_apps buttons, in bar order. */
@@ -3614,7 +3674,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Read the switch, not the pill: show_inputs_pill=false hides the pill too, and there the list
         // keeps its usual place.
         boolean underGear = topMenu;
-        View anchor = findViewById(underGear ? R.id.btnSettings : R.id.btnInputs);
+        View anchor = visibleTopAnchor(underGear ? R.id.btnSettings : R.id.btnInputs);
         View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
         LinearLayout rows = panel.findViewById(R.id.rows);
 
@@ -3667,6 +3727,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // inputs_cec_state_only: the TV puts port states on the wrong port (TCL UnionTV, Android 9), so
             // ports show none, and a CEC device row shows its own state, which the CEC bus keeps right.
             boolean hdmiStateBogus = inputsCecStateOnly || (hdmiPorts > 1 && hdmiConnected == hdmiPorts);
+            InputNames.PortStrings portStrings = InputNames.PortStrings.from(this);
             for (TvInputInfo info : inputs) {
                 if (info.getType() == TvInputInfo.TYPE_TUNER
                         && (info.getServiceInfo().applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0
@@ -3693,12 +3754,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (!info.isPassthroughInput() || info.isHidden(this)) continue;
                 // input_sources can leave out ports the board reports but the set does not have ("HW8=-").
                 if (Integer.valueOf(-1).equals(mappedSource(info.getId()))) continue;
+                if (hiddenInputs.contains(info.getId())) continue;
                 // A CEC device's row is added with its port, below.
                 if (info.getParentId() != null && inputIds.contains(info.getParentId())) continue;
-                CharSequence l = info.loadLabel(this);
-                String label = l == null ? info.getId() : l.toString();
+                String label = InputNames.localizePortLabel(info.loadLabel(this), info.getType(), portStrings);
+                if (label.isEmpty()) label = info.getId();
                 boolean hdmi = info.getType() == TvInputInfo.TYPE_HDMI;
-                if (hdmi && !label.toUpperCase(Locale.ROOT).contains("HDMI")) label = "HDMI " + label;
                 CharSequence custom = InputNames.tidy(info.loadCustomLabel(this));
                 boolean named = custom != null && custom.length() > 0 && !custom.toString().equals(label);
                 if (!hdmi && rows.getChildCount() > 0 && !sawNonHdmi) {
@@ -3712,10 +3773,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     // Settings > Inputs), then the port. Opening the device's input also makes it the CEC
                     // active source, which wakes it.
                     for (TvInputInfo device : devices) {
+                        final String deviceId = device.getId();
+                        if (hiddenInputs.contains(deviceId)) continue;
                         CharSequence name = InputNames.tidy(device.loadCustomLabel(this));
                         if (name == null || name.length() == 0) name = named ? custom : device.loadLabel(this);
                         String deviceLabel = name == null || name.length() == 0 ? label : name + " \u00B7 " + label;
-                        final String deviceId = device.getId();
+                        String customDeviceLabel = appLabels != null
+                                ? appLabels.get(TvInputTiles.INPUT_PREFIX + deviceId) : null;
+                        if (customDeviceLabel != null && !customDeviceLabel.isEmpty()) {
+                            deviceLabel = customDeviceLabel;
+                        }
                         int state = hdmiStateBogus && !inputsCecStateOnly ? -1 : tim.getInputState(deviceId);
                         View row = addInputRow(rows, popup, R.drawable.ic_input, deviceLabel, state, () -> openInput(deviceId));
                         if (connectedOnly && InputFold.folds(true, state)) fold(row, folded);
@@ -3725,6 +3792,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 // The name given in Settings > Inputs (e.g. "MacBook Pro") goes first, the port after it.
                 if (named) label = custom + " \u00B7 " + label;
                 final String id = info.getId();
+                String customPortLabel = appLabels != null ? appLabels.get(TvInputTiles.INPUT_PREFIX + id) : null;
+                if (customPortLabel != null && !customPortLabel.isEmpty()) label = customPortLabel;
                 // Analog AV jacks have no hotplug detection, and some TVs report them as always connected
                 // (TCL Smart TV Pro G03 says "Connected" with nothing plugged in), so AV rows show no state.
                 int state = !hdmi || hdmiStateBogus ? -1 : tim.getInputState(id);
@@ -3789,13 +3858,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         : tuned;
             }
         }
-        if (liveTv != null) {
+        if (liveTv != null && (tunerId == null || !hiddenInputs.contains(tunerId))) {
             if (rows.getChildCount() > 0) addSeparator(rows);
             Intent dtt = new Intent("com.amazon.tv.livetv.action.YAC_LAUNCH")
                     .setPackage("com.amazon.tv.livetv");
             final Intent liveTvIntent = ("com.vewd.core.tvapp".equals(liveTvPkg)
                     && getPackageManager().resolveActivity(dtt, 0) != null) ? dtt : liveTv;
-            String tvLabel = (appLabels != null && appLabels.containsKey(liveTvPkg)) ? appLabels.get(liveTvPkg) : getString(R.string.live_tv);
+            String tvLabel = null;
+            if (appLabels != null) {
+                if (tunerId != null) tvLabel = appLabels.get(TvInputTiles.INPUT_PREFIX + tunerId);
+                else tvLabel = appLabels.get(liveTvPkg);
+            }
+            if (tvLabel == null || tvLabel.isEmpty()) tvLabel = getString(R.string.live_tv);
             addInputRow(rows, popup, R.drawable.ic_livetv, tvLabel, -1, () -> open(liveTvIntent));
         }
         if (rows.getChildCount() == 0) {
@@ -3913,7 +3987,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /** The header opens launcher settings directly; hold OK keeps the extra home actions available. */
     private void showSettingsMenu() {
-        View anchor = findViewById(R.id.btnSettings);
+        View anchor = visibleTopAnchor(R.id.btnSettings);
         View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
         LinearLayout rows = panel.findViewById(R.id.rows);
         PopupWindow popup = glassPopup(panel, (int) (200 * density));
@@ -3932,7 +4006,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (DockSlots.showDockEdit(dockRow, dockEdit)) addSettingsMenuRow(rows, popup, R.string.dock_edit, this::startDockEdit);
         addSettingsMenuRow(rows, popup, R.string.reorder, this::toggleReorder);
         // A launcher may not restart the TV itself; the Home key helper can open the system power menu instead.
-        if (HomeKeyService.canOpenPowerMenu()) addSettingsMenuRow(rows, popup, R.string.power_menu, HomeKeyService::openPowerMenu);
+        if (HomeKeyService.canOpenPowerMenu()) addSettingsMenuRow(rows, popup, R.string.power_menu,
+                () -> root.post(HomeKeyService::openPowerMenu));
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         popup.setWidth(Math.max((int) (200 * density), panel.getMeasuredWidth()));
         // Hebrew puts Settings at the left of the header: grow the menu inward from it.
@@ -4064,19 +4139,34 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (position < adapter.movableCount()) addSettingsMenuRow(rows, popup, R.string.tile_move, () -> {
             if (!beginReorder()) return;
+            singleTileMove = tileMoveExitsReorder;
             int at = adapter.positionOf(key);   // beginReorder can rebuild the tiles
-            if (at < 0) return;
+            if (at < 0) {
+                endReorder();
+                return;
+            }
             focusTile(at);
             pickUp(at);
-            Toast.makeText(this, R.string.reorder_hint, Toast.LENGTH_LONG).show();
+            Toast.makeText(this, singleTileMove ? R.string.tile_move_hint : R.string.reorder_hint, Toast.LENGTH_LONG).show();
         });
-        if (appLibraryEnabled) addSettingsMenuRow(rows, popup, R.string.library_remove_shortcut, () -> {
-            if (LibraryApps.save(this, pkg, false)) reloadApps(false);
-            else Toast.makeText(this, R.string.library_save_failed, Toast.LENGTH_LONG).show();
-        });
-        // Some firmware has no App info page at all; a row that only toasts "can't open" helps nobody.
-        Intent info = SystemSettings.appInfo(this, pkg);
-        if (info != null) addSettingsMenuRow(rows, popup, R.string.library_app_info, () -> open(info));
+        boolean virtualInput = TvInputTiles.isInputPackage(pkg);
+        if (virtualInput) {
+            String inputId = TvInputTiles.inputIdFromPackage(pkg);
+            addSettingsMenuRow(rows, popup, R.string.library_remove_shortcut, () -> {
+                if (removeVirtualInputTile(inputId)) reloadApps(false);
+            });
+        } else if (appLibraryEnabled) {
+            addSettingsMenuRow(rows, popup, R.string.library_remove_shortcut, () -> {
+                if (LibraryApps.save(this, pkg, false)) reloadApps(false);
+                else Toast.makeText(this, R.string.library_save_failed, Toast.LENGTH_LONG).show();
+            });
+        }
+        if (tileMenuAppInfo && !virtualInput) {
+            // Some firmware has no App info page at all; a row that only toasts "can't open" helps nobody.
+            Intent info = SystemSettings.appInfo(this, pkg);
+            if (info != null) addSettingsMenuRow(rows, popup, R.string.library_app_info, () -> open(info));
+        }
+        if (rows.getChildCount() == 0) return;
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         popup.setWidth(Math.max((int) (200 * density), panel.getMeasuredWidth()));
         // Dock tiles sit near the bottom of the screen: open the menu above the tile when it would not fit below.
@@ -4095,6 +4185,29 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
         }
         rows.getChildAt(0).requestFocus();
+    }
+
+    private boolean removeVirtualInputTile(String inputId) {
+        if (inputId == null) return false;
+        SharedPreferences choices = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE);
+        Set<String> next;
+        if (choices.contains(Config.INPUT_TILES_SELECTED_KEY)) {
+            Set<String> raw = choices.getStringSet(Config.INPUT_TILES_SELECTED_KEY, Collections.emptySet());
+            next = raw == null ? new HashSet<>() : new HashSet<>(raw);
+        } else {
+            next = new HashSet<>();
+            for (TvInputTiles.TileSpec spec : TvInputTiles.discover(this, Config.load(this))) {
+                next.add(spec.inputId);
+            }
+        }
+        if (!next.remove(inputId)) return false;
+        choices.edit()
+                .putStringSet(Config.INPUT_TILES_SELECTED_KEY, next)
+                .putLong(Config.SETTINGS_REVISION_KEY,
+                        choices.getLong(Config.SETTINGS_REVISION_KEY, 0) + 1)
+                .commit();
+        settingsRevision = settingsRevision();
+        return true;
     }
 
     private void addSettingsMenuRow(LinearLayout rows, PopupWindow popup, int title, Runnable action) {
@@ -4237,7 +4350,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void showModuleCardsNow() {
-        View anchor = findViewById(R.id.btnSettings);
+        View anchor = visibleTopAnchor(R.id.btnSettings);
         View panel = getLayoutInflater().inflate(R.layout.popup_cards, root, false);
         if (getResources().getBoolean(R.bool.rtl_menu_bar))
             panel.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);

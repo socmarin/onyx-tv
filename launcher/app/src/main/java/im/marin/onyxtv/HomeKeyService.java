@@ -93,6 +93,7 @@ public class HomeKeyService extends AccessibilityService {
     private String frontPackage = "";
     /** power_on_home_always: Home at every power-on, not only over Live TV. */
     private boolean powerOnAlways;
+    private long loadedSettingsRevision = -1L;
     /** power_on_home / stock_home_redirect: handles ACTION_SCREEN_ON; null unless at least one is active. */
     private BroadcastReceiver screenOnReceiver;
     /** Stops key filtering while a game controller is connected; null unless gamepad_passthrough and key_filter, or before the unlock. */
@@ -109,21 +110,26 @@ public class HomeKeyService extends AccessibilityService {
     /** disableSelf is how this service leaves for standby, not the user turning it off. */
     private boolean steppingOut;
 
-    private static final String VENEZIA_PKG = "com.amazon.venezia";
-    private static final String VENEZIA_APPS_GRID = "com.amazon.venezia.grid.AppsGridLauncherActivity";
+    static final String VENEZIA_PKG = "com.amazon.venezia";
+    static final String VENEZIA_APPS_GRID = "com.amazon.venezia.grid.AppsGridLauncherActivity";
+    private static final String VENEZIA_APP_LAUNCH = "com.amazon.venezia.pdi.AppLaunchActivity";
     private static final String VENEZIA_APP_DETAILS = "com.amazon.venezia.details.AppDetailsActivity";
     private static final String VENEZIA_UPDATE_DIALOG = "com.amazon.venezia.appupdates.ManualUpdateDialogActivity";
     private static final long BOOT_FALLBACK_MS = 2500L;
     private static final long REMOTE_REDIRECT_COOLDOWN_MS = 1200L;
+    private static final long EXPLICIT_LAUNCH_GRACE_MS = 4000L;
     static final long BT_NAME_SYNC_COOLDOWN_MS = 5000L;
     private static final long[] DETAILS_RETRY_DELAYS_MS = { 250L, 650L, 1200L, 2000L };
     private static final long[] SCREEN_ON_CHECK_DELAYS_MS = { 0L, 150L, 250L, 400L, 600L, 1000L };
 
     /** The bound helper, so the opt-in broadcast can arm it without waiting for a new connection. */
     private static HomeKeyService running;
+    private static volatile String explicitLaunchPkg = "";
+    private static volatile long explicitLaunchUntil = 0L;
     private Runnable bootFallback;
     private boolean userLeftHomeAtBoot;
     private Runnable detailsCheck;
+    private Runnable captureDetailsCheck;
     private boolean watchingAppDetails;
     private final Map<String, Long> lastWindowRedirects = new HashMap<>();
     private Runnable screenOnStockHomeCheck;
@@ -139,6 +145,30 @@ public class HomeKeyService extends AccessibilityService {
 
     static boolean isRunning() {
         return running != null;
+    }
+
+    /** Marks a user-initiated app launch from Onyx so window redirects don't hijack intentional opens. */
+    static void noteExplicitAppLaunch(String pkg) {
+        if (pkg == null || pkg.isEmpty()) return;
+        explicitLaunchPkg = pkg;
+        explicitLaunchUntil = SystemClock.uptimeMillis() + EXPLICIT_LAUNCH_GRACE_MS;
+    }
+
+    static void setWindowCapture(RemoteKeyCustom.WindowCaptureHandler captureHandler) {
+        RemoteKeyCustom.activeWindowCapture = captureHandler;
+        HomeKeyService service = running;
+        if (service == null) return;
+        if (captureHandler == null) service.clearCaptureDetailsCheck();
+        else service.ensureWindowEventsSubscribed();
+    }
+
+    private void ensureWindowEventsSubscribed() {
+        AccessibilityServiceInfo info = getServiceInfo();
+        if (info == null) return;
+        if ((info.eventTypes & AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) == 0) {
+            info.eventTypes |= AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED;
+            setServiceInfo(info);
+        }
     }
 
     static void markHomeShownThisBoot(Context context) {
@@ -194,6 +224,12 @@ public class HomeKeyService extends AccessibilityService {
         unlockReceiver = null;
     }
 
+    /** Reloads config and key/window/power-on listeners when a running service exists. */
+    static void reloadIfRunning() {
+        HomeKeyService service = running;
+        if (service != null) service.loadConfig();
+    }
+
     /** The opt-in broadcast: arm this binding now, or drop the receiver if the opt-in was turned off. */
     static void applyStandbyOptIn() {
         HomeKeyService service = running;
@@ -209,6 +245,7 @@ public class HomeKeyService extends AccessibilityService {
         stopWaitingForUnlock();
         clearBootFallback();
         clearDetailsCheck();
+        clearCaptureDetailsCheck();
         clearScreenOnStockHomeCheck();
         if (fireHome != null) {
             fireHome.destroy();
@@ -367,6 +404,8 @@ public class HomeKeyService extends AccessibilityService {
 
     private void loadConfig() {
         // Keycodes and the panel choice can also come from a theme; theme.sh restarts this service.
+        loadedSettingsRevision = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
+                .getLong(Config.SETTINGS_REVISION_KEY, 0L);
         Config config = Config.load(this);
         // restore_key_services: note that this helper runs, so Home can put it back after a force stop. Here, not
         // in onServiceConnected: the note is in credential-protected storage too, readable only after the unlock.
@@ -432,7 +471,7 @@ public class HomeKeyService extends AccessibilityService {
         // home_key_service.xml subscribes to no events, so window changes are requested only when a redirect is active.
         AccessibilityServiceInfo info = getServiceInfo();
         if (info != null && (!stockHome.isEmpty() || !powerOnLiveTv.isEmpty() || watchFront
-                || !windowRedirects.isEmpty())) {
+                || !windowRedirects.isEmpty() || RemoteKeyCustom.activeWindowCapture != null)) {
             info.eventTypes |= AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED;
             setServiceInfo(info);
         }
@@ -463,6 +502,13 @@ public class HomeKeyService extends AccessibilityService {
 
     @Override
     protected boolean onKeyEvent(KeyEvent event) {
+        RemoteKeyCustom.KeyCaptureHandler capture = RemoteKeyCustom.activeCapture;
+        if (capture != null && capture.onKeyEvent(event)) return true;
+        if (unlockReceiver == null) {
+            long rev = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
+                    .getLong(Config.SETTINGS_REVISION_KEY, 0L);
+            if (rev != loadedSettingsRevision) loadConfig();
+        }
         // power_on_home: the first key after power-on hands the TV to the user (power and wake keys don't count).
         if (powerOnUntil != 0 && event.getAction() == KeyEvent.ACTION_DOWN
                 && event.getKeyCode() != KeyEvent.KEYCODE_POWER && event.getKeyCode() != KeyEvent.KEYCODE_WAKEUP) {
@@ -519,10 +565,31 @@ public class HomeKeyService extends AccessibilityService {
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         if (event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return;
+        if (unlockReceiver == null) {
+            long rev = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
+                    .getLong(Config.SETTINGS_REVISION_KEY, 0L);
+            if (rev != loadedSettingsRevision) loadConfig();
+        }
         CharSequence cls = event.getClassName();
         CharSequence pkg = event.getPackageName();
         String pkgStr = pkg == null ? "" : pkg.toString();
         String clsStr = cls == null ? "" : cls.toString();
+        RemoteKeyCustom.WindowCaptureHandler windowCapture = RemoteKeyCustom.activeWindowCapture;
+        if (windowCapture != null) {
+            if (pkgStr.isEmpty() || getPackageName().equals(pkgStr)
+                    || "android".equals(pkgStr) || "com.android.systemui".equals(pkgStr)
+                    || VENEZIA_APP_LAUNCH.equals(clsStr)) {
+                return;
+            }
+            if (VENEZIA_PKG.equals(pkgStr) && (VENEZIA_APP_DETAILS.equals(clsStr) || VENEZIA_UPDATE_DIALOG.equals(clsStr))) {
+                captureVeneziaDetails(event, pkgStr, clsStr, windowCapture, 0);
+                return;
+            }
+            if (isActivityWindow(pkgStr, clsStr)) {
+                windowCapture.onWindowOpened(pkgStr, clsStr, null);
+            }
+            return;
+        }
         boolean activityWindow = !ProbeActivity.class.getName().equals(clsStr) && isActivityWindow(pkgStr, clsStr);
         if (activityWindow) {
             lastActivityPackage = pkgStr;
@@ -537,13 +604,15 @@ public class HomeKeyService extends AccessibilityService {
             openHome();
             return;
         }
-        if (appLibrary && VENEZIA_PKG.equals(pkgStr) && VENEZIA_APPS_GRID.equals(clsStr)) {
-            launchWindowRedirect("library");
-            return;
-        }
-        String configuredRedirect = windowRedirects.matchWindow(pkgStr, clsStr);
+        boolean skipExplicit = !pkgStr.isEmpty() && pkgStr.equals(explicitLaunchPkg)
+                && SystemClock.uptimeMillis() < explicitLaunchUntil;
+        String configuredRedirect = skipExplicit ? null : windowRedirects.matchWindow(pkgStr, clsStr);
         if (configuredRedirect != null) {
             launchWindowRedirect(configuredRedirect);
+            return;
+        }
+        if (appLibrary && VENEZIA_PKG.equals(pkgStr) && VENEZIA_APPS_GRID.equals(clsStr)) {
+            launchWindowRedirect("library");
             return;
         }
         if (fireHome != null) {
@@ -807,6 +876,7 @@ public class HomeKeyService extends AccessibilityService {
     private void launchWindowRedirect(String target) {
         clearBootFallback();
         clearDetailsCheck();
+        clearCaptureDetailsCheck();
         clearScreenOnStockHomeCheck();
         if (fireHome != null) fireHome.cancel();
         long now = SystemClock.uptimeMillis();
@@ -845,6 +915,84 @@ public class HomeKeyService extends AccessibilityService {
             scheduleDetailsStep(index + 1);
         };
         handler.postDelayed(detailsCheck, DETAILS_RETRY_DELAYS_MS[index]);
+    }
+
+    private void clearCaptureDetailsCheck() {
+        if (captureDetailsCheck != null) {
+            handler.removeCallbacks(captureDetailsCheck);
+            captureDetailsCheck = null;
+        }
+    }
+
+    private void captureVeneziaDetails(AccessibilityEvent event, String pkgStr, String clsStr,
+                                       RemoteKeyCustom.WindowCaptureHandler windowCapture, int step) {
+        clearCaptureDetailsCheck();
+        String title = extractVeneziaDetailsTitle(event);
+        if (title == null) title = findFirstDetailsTitle();
+        if (title != null || step >= 2) {
+            windowCapture.onWindowOpened(pkgStr, clsStr, title != null ? title : "Appstore");
+            return;
+        }
+        captureDetailsCheck = () -> {
+            captureDetailsCheck = null;
+            if (RemoteKeyCustom.activeWindowCapture == windowCapture) {
+                captureVeneziaDetails(null, pkgStr, clsStr, windowCapture, step + 1);
+            }
+        };
+        handler.postDelayed(captureDetailsCheck, 280L);
+    }
+
+    private String extractVeneziaDetailsTitle(AccessibilityEvent event) {
+        if (event == null) return null;
+        for (CharSequence part : event.getText()) {
+            String clean = cleanDetailsCandidate(part);
+            if (clean != null) return clean;
+        }
+        return null;
+    }
+
+    private String findFirstDetailsTitle() {
+        AccessibilityNodeInfo root = getRootInActiveWindow();
+        if (root == null) return null;
+        try {
+            return walkDetailsTitle(root);
+        } finally {
+            root.recycle();
+        }
+    }
+
+    private static String walkDetailsTitle(AccessibilityNodeInfo node) {
+        if (node == null) return null;
+        String clean = cleanDetailsCandidate(node.getText());
+        if (clean != null) return clean;
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo child = node.getChild(i);
+            if (child == null) continue;
+            try {
+                String found = walkDetailsTitle(child);
+                if (found != null) return found;
+            } finally {
+                child.recycle();
+            }
+        }
+        return null;
+    }
+
+    private static String cleanDetailsCandidate(CharSequence raw) {
+        if (raw == null) return null;
+        String s = raw.toString().trim();
+        if (s.length() < 2 || s.length() > 48) return null;
+        String lower = s.toLowerCase(java.util.Locale.ROOT);
+        if ("appstore".equals(lower) || "amazon appstore".equals(lower)
+                || "get".equals(lower) || "obtener".equals(lower)
+                || "download".equals(lower) || "descargar".equals(lower)
+                || "install".equals(lower) || "instalar".equals(lower)
+                || "update".equals(lower) || "actualizar".equals(lower)
+                || "open".equals(lower) || "abrir".equals(lower)
+                || "cancel".equals(lower) || "cancelar".equals(lower)) {
+            return null;
+        }
+        return s;
     }
 
     private void clearDetailsCheck() {

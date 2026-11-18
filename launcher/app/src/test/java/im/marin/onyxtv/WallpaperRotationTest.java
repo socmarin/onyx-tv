@@ -12,8 +12,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
+import java.util.Set;
 
 import org.junit.Test;
 
@@ -128,6 +131,62 @@ public class WallpaperRotationTest {
         assertFalse(WallpaperRotation.due(8 * minute, 10 * minute, 5 * minute));
         assertTrue(WallpaperRotation.due(5 * minute, 10 * minute, 5 * minute));
         assertTrue(WallpaperRotation.due(20 * minute, 10 * minute, 5 * minute));   // clock went back
+    }
+
+    @Test
+    public void userWallpapersTakePrecedenceOverBuiltInsWithSameName() {
+        List<File> user = Arrays.asList(new File("/user/christmas.jpg"), new File("/user/custom.jpg"));
+        List<File> builtin = Arrays.asList(new File("/builtin/christmas.jpg"), new File("/builtin/autumn.jpg"));
+        List<File> merged = Config.mergeWallpapers(user, builtin);
+        assertEquals(Arrays.asList("christmas.jpg", "custom.jpg", "autumn.jpg"), names(merged));
+        assertEquals("/user/christmas.jpg", merged.get(0).getPath());
+    }
+
+    @Test
+    public void builtInWallpapersResolveLocalizedLabels() {
+        assertEquals(R.string.wallpaper_christmas_trees, Config.wallpaperLabelRes("christmas_trees.jpg"));
+        assertEquals(R.string.wallpaper_christmas_nativity, Config.wallpaperLabelRes("christmas_nativity.jpg"));
+        assertEquals(R.string.wallpaper_christmas_tio_de_nadal, Config.wallpaperLabelRes("christmas_tio_de_nadal.jpg"));
+        assertEquals(R.string.wallpaper_christmas_olentzero, Config.wallpaperLabelRes("christmas_olentzero.jpg"));
+        assertEquals(R.string.wallpaper_halloween_darkness, Config.wallpaperLabelRes("halloween_darkness.jpg"));
+        assertEquals(R.string.wallpaper_love_hearts, Config.wallpaperLabelRes("love_hearts.jpg"));
+        assertEquals(R.string.wallpaper_carnival_mask, Config.wallpaperLabelRes("carnival_mask.jpg"));
+        assertEquals(R.string.wallpaper_women_female_symbol, Config.wallpaperLabelRes("women_female_symbol.jpg"));
+        assertEquals(R.string.wallpaper_women_mother, Config.wallpaperLabelRes("women_mother.jpg"));
+        assertEquals(R.string.wallpaper_women_pregnant, Config.wallpaperLabelRes("women_pregnant.jpg"));
+        assertEquals(R.string.wallpaper_women_breastfeeding, Config.wallpaperLabelRes("women_breastfeeding.jpg"));
+        assertEquals(R.string.wallpaper_religion_catholic_procession,
+                Config.wallpaperLabelRes("religion_catholic_procession.jpg"));
+        assertEquals(R.string.wallpaper_children_balloons, Config.wallpaperLabelRes("children_balloons.jpg"));
+        assertEquals(R.string.wallpaper_men_father, Config.wallpaperLabelRes("men_father.jpg"));
+        assertEquals(R.string.wallpaper_christmas_merry, Config.wallpaperLabelRes("christmas_merry.jpg"));
+        assertEquals(R.string.wallpaper_celebrations_birthday, Config.wallpaperLabelRes("celebrations_birthday.jpg"));
+        assertEquals(R.string.wallpaper_diversity_agender, Config.wallpaperLabelRes("diversity_agender.jpg"));
+        assertEquals(R.string.wallpaper_diversity_rainbow, Config.wallpaperLabelRes("diversity_rainbow.jpg"));
+        assertEquals(R.string.wallpaper_diversity_intersex, Config.wallpaperLabelRes("diversity_intersex.jpg"));
+        assertEquals(R.string.wallpaper_diversity_pansexual, Config.wallpaperLabelRes("diversity_pansexual.jpg"));
+        assertEquals(R.string.wallpaper_diversity_trans, Config.wallpaperLabelRes("diversity_trans.jpg"));
+        assertEquals(0, Config.wallpaperLabelRes("valentines_day_hearts.jpg"));
+        assertEquals(0, Config.wallpaperLabelRes("custom.jpg"));
+    }
+
+    @Test
+    public void localizedWallpapersResolveLanguageAndFallbackCleanly() {
+        Set<String> available = new HashSet<>(Arrays.asList(
+                "en.jpg", "es.jpg", "es-419.jpg", "pt.jpg", "pt-PT.jpg",
+                "sr-Latn.jpg", "iw.jpg", "in.jpg", "zh-CN.jpg", "zh-TW.jpg"
+        ));
+        assertEquals("es.jpg", Config.resolveLocalizedWallpaperFile("es", Locale.US, available));
+        assertEquals("es-419.jpg", Config.resolveLocalizedWallpaperFile("es-419", Locale.US, available));
+        assertEquals("pt-PT.jpg", Config.resolveLocalizedWallpaperFile("pt-PT", Locale.US, available));
+        assertEquals("sr-Latn.jpg", Config.resolveLocalizedWallpaperFile("sr-Latn", Locale.US, available));
+        assertEquals("iw.jpg", Config.resolveLocalizedWallpaperFile("", Locale.forLanguageTag("he-IL"), available));
+        assertEquals("in.jpg", Config.resolveLocalizedWallpaperFile("", Locale.forLanguageTag("id-ID"), available));
+        assertEquals("zh-TW.jpg", Config.resolveLocalizedWallpaperFile("", Locale.forLanguageTag("zh-HK"), available));
+        assertEquals("zh-CN.jpg", Config.resolveLocalizedWallpaperFile("", Locale.SIMPLIFIED_CHINESE, available));
+        assertEquals("es.jpg", Config.resolveLocalizedWallpaperFile("", Locale.forLanguageTag("es-ES"), available));
+        assertEquals("en.jpg", Config.resolveLocalizedWallpaperFile("xx", Locale.forLanguageTag("zz"), available));
+        assertNull(Config.resolveLocalizedWallpaperFile("es", Locale.US, Collections.emptySet()));
     }
 
     private static List<String> names(List<File> files) {

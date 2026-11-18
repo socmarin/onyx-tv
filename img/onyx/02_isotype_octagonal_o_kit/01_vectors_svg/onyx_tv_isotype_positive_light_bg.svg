@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000">
+  <rect x="482" y="680" width="36" height="36" fill="#222222"/>
+  <polygon points="360,726 376,716 624,716 640,726" fill="#181818"/>
+  <rect x="140" y="260" width="720" height="420" rx="8" ry="8" fill="#181818"/>
+  <rect x="156" y="276" width="688" height="374" rx="2" ry="2" fill="#FFFFFF"/>
+  <path d="M 456.88,365.00 L 543.12,365.00 L 592.12,414.00 L 592.12,512.00 L 543.12,561.00 L 456.88,561.00 L 407.88,512.00 L 407.88,414.00 Z M 443.88,434.32 L 443.88,491.68 L 477.20,525.00 L 522.80,525.00 L 556.12,491.68 L 556.12,434.32 L 522.80,401.00 L 477.20,401.00 Z" fill="#181818" fill-rule="evenodd"/>
+  <circle cx="500" cy="665" r="4.5" fill="#D91E18"/>
+</svg>

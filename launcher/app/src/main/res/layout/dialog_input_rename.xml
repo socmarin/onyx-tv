@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/wallpaper_picker_dialog_bg"
+    android:orientation="vertical"
+    android:paddingStart="26dp"
+    android:paddingTop="22dp"
+    android:paddingEnd="26dp"
+    android:paddingBottom="22dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="@string/font_medium"
+        android:text="@string/input_custom_name_label"
+        android:textColor="#FFFFFFFF"
+        android:textSize="22sp" />
+
+    <TextView
+        android:id="@+id/renameOriginalPort"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="#8CFFFFFF"
+        android:textSize="13sp" />
+
+    <EditText
+        android:id="@+id/renameEdit"
+        android:layout_width="match_parent"
+        android:layout_height="46dp"
+        android:layout_marginTop="14dp"
+        android:background="@drawable/settings_edit_bg"
+        android:hint="@string/input_custom_name_hint"
+        android:imeOptions="actionDone"
+        android:inputType="textCapWords"
+        android:maxLength="32"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:singleLine="true"
+        android:textColor="#FFFFFFFF"
+        android:textColorHint="#80FFFFFF"
+        android:textCursorDrawable="@null"
+        android:textSize="16sp" />
+
+    <LinearLayout
+        android:id="@+id/renameChipsRow1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:orientation="horizontal" />
+
+    <LinearLayout
+        android:id="@+id/renameChipsRow2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:gravity="end"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/renameRestore"
+            style="@style/SettingsRow"
+            android:layout_width="wrap_content"
+            android:minHeight="40dp"
+            android:paddingStart="16dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="8dp"
+            android:text="@string/wallpaper_reset"
+            android:textColor="@color/settings_choice_text"
+            android:textSize="14sp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/renameCancel"
+            style="@style/SettingsRow"
+            android:layout_width="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:minHeight="40dp"
+            android:paddingStart="16dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="8dp"
+            android:text="@string/cancel"
+            android:textColor="@color/settings_choice_text"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/renameSave"
+            style="@style/SettingsRow"
+            android:layout_width="wrap_content"
+            android:minHeight="40dp"
+            android:paddingStart="18dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="18dp"
+            android:paddingBottom="8dp"
+            android:text="@string/save"
+            android:textColor="@color/settings_choice_text"
+            android:textSize="14sp" />
+    </LinearLayout>
+</LinearLayout>

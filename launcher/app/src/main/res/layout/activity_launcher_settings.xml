@@ -1,173 +1,964 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FF101419"
-    android:fillViewport="true">
+    android:background="@drawable/settings_screen_bg"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:orientation="horizontal"
+    android:paddingStart="44dp"
+    android:paddingTop="32dp"
+    android:paddingEnd="44dp"
+    android:paddingBottom="28dp">
 
+    <!-- Left live miniature Home preview & Onyx brand column -->
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingStart="72dp"
-        android:paddingEnd="72dp"
-        android:paddingTop="38dp"
-        android:paddingBottom="38dp">
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/launcher_settings"
-            android:textColor="#FFFFFFFF"
-            android:textSize="34sp" />
-
-        <TextView
-            android:id="@+id/reorderChoice"
-            style="@style/SettingsRow"
-            android:layout_marginTop="28dp"
-            android:text="@string/reorder"
-            android:visibility="gone" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
-            android:text="@string/columns_label"
-            android:textColor="#FFFFFFFF"
-            android:textSize="20sp" />
+        android:layout_width="256dp"
+        android:layout_height="match_parent"
+        android:descendantFocusability="blocksDescendants"
+        android:focusable="false"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:orientation="horizontal">
+            android:background="@drawable/settings_group_bg"
+            android:orientation="vertical"
+            android:padding="13dp">
 
-            <TextView android:id="@+id/columns4" style="@style/SettingsColumnChoice" android:text="4" />
-            <TextView android:id="@+id/columns5" style="@style/SettingsColumnChoice" android:text="5" />
-            <TextView android:id="@+id/columns6" style="@style/SettingsColumnChoice" android:text="6" />
-            <TextView android:id="@+id/columns7" style="@style/SettingsColumnChoice" android:text="7" />
+            <FrameLayout
+                android:id="@+id/sidebarPreviewFrame"
+                android:layout_width="match_parent"
+                android:layout_height="128dp"
+                android:background="@drawable/wallpaper_preview_frame"
+                android:padding="1dp">
+
+                <include layout="@layout/view_home_preview" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/sidebarWallpaperValue"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:ellipsize="end"
+                android:fontFamily="@string/font_medium"
+                android:singleLine="true"
+                android:textColor="#E6FFFFFF"
+                android:textSize="13sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@drawable/ic_language"
+                    android:tint="#8CFFFFFF" />
+
+                <TextView
+                    android:id="@+id/sidebarLanguageValue"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:singleLine="true"
+                    android:textColor="#8CFFFFFF"
+                    android:textSize="12sp" />
+            </LinearLayout>
         </LinearLayout>
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
-            android:text="@string/rows_below_dock_label"
-            android:textColor="#FFFFFFFF"
-            android:textSize="20sp" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:orientation="horizontal">
+            android:layout_marginTop="14dp"
+            android:background="@drawable/settings_group_bg"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingTop="18dp"
+            android:paddingBottom="18dp">
 
-            <TextView android:id="@+id/rows0" style="@style/SettingsColumnChoice" android:text="0" />
-            <TextView android:id="@+id/rows1" style="@style/SettingsColumnChoice" android:text="1" />
-            <TextView android:id="@+id/rows2" style="@style/SettingsColumnChoice" android:text="2" />
-            <TextView android:id="@+id/rows3" style="@style/SettingsColumnChoice" android:text="3" />
+            <ImageView
+                android:layout_width="88dp"
+                android:layout_height="60dp"
+                android:contentDescription="@string/app_name"
+                android:src="@drawable/ic_onyx_brand" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:fontFamily="@string/font_medium"
+                android:letterSpacing="0.16"
+                android:text="ONYX"
+                android:textColor="#FFFFFFFF"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/versionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="7dp"
+                android:background="@drawable/settings_badge_bg"
+                android:paddingStart="12dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="4dp"
+                android:textColor="#B3FFFFFF"
+                android:textSize="12sp" />
         </LinearLayout>
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
-            android:text="@string/dock_opacity_label"
-            android:textColor="#FFFFFFFF"
-            android:textSize="20sp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:orientation="horizontal">
-
-            <TextView android:id="@+id/dock100" style="@style/SettingsColumnChoice" android:text="100%" />
-            <TextView android:id="@+id/dock70" style="@style/SettingsColumnChoice" android:text="70%" />
-            <TextView android:id="@+id/dock50" style="@style/SettingsColumnChoice" android:text="50%" />
-            <TextView android:id="@+id/dock30" style="@style/SettingsColumnChoice" android:text="30%" />
-        </LinearLayout>
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
-            android:text="@string/dream_name"
-            android:textColor="#FFFFFFFF"
-            android:textSize="20sp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:orientation="horizontal">
-
-            <TextView android:id="@+id/clockSystem" style="@style/SettingsColumnChoice" android:text="@string/clock_format_system" />
-            <TextView android:id="@+id/clock12" style="@style/SettingsColumnChoice" android:text="@string/clock_format_12" />
-            <TextView android:id="@+id/clock24" style="@style/SettingsColumnChoice" android:text="@string/clock_format_24" />
-        </LinearLayout>
-
-        <TextView
-            android:id="@+id/wallpaperChoice"
-            style="@style/SettingsRow"
-            android:layout_marginTop="28dp" />
-
-        <TextView
-            android:id="@+id/animationsChoice"
-            style="@style/SettingsRow"
-            android:layout_marginTop="28dp" />
-
-        <TextView
-            android:id="@+id/advancedChoice"
-            style="@style/SettingsRow"
-            android:layout_marginTop="10dp" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/advanced_effects_warning"
-            android:textColor="#FFACB8C1"
-            android:textSize="14sp" />
-
-        <TextView
-            android:id="@+id/openOnStartChoice"
-            style="@style/SettingsRow"
-            android:layout_marginTop="28dp"
-            android:visibility="gone" />
-
-        <TextView
-            android:id="@+id/followThemeChoice"
-            style="@style/SettingsRow"
-            android:layout_marginTop="18dp"
-            android:text="@string/follow_theme" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="7dp"
-            android:text="@string/follow_theme_hint"
-            android:textColor="#FFACB8C1"
-            android:textSize="14sp" />
-
-        <TextView
-            android:id="@+id/defaultHomeChoice"
-            style="@style/SettingsRow"
-            android:layout_marginTop="28dp"
-            android:text="@string/home_settings" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="7dp"
-            android:text="@string/home_settings_help"
-            android:textColor="#FFACB8C1"
-            android:textSize="14sp" />
-
-        <TextView
-            android:id="@+id/tvSettingsChoice"
-            style="@style/SettingsRow"
-            android:layout_marginTop="18dp"
-            android:text="@string/tv_settings" />
     </LinearLayout>
-</ScrollView>
+
+    <!-- Right scrollable settings cards -->
+    <ScrollView
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_marginStart="28dp"
+        android:layout_weight="1"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:orientation="vertical"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:paddingBottom="18dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="@string/font_medium"
+                android:text="@string/launcher_settings"
+                android:textColor="#FFFFFFFF"
+                android:textSize="26sp" />
+
+            <!-- Reorder tiles (when enabled) -->
+            <LinearLayout
+                android:id="@+id/reorderChoice"
+                style="@style/SettingsRow"
+                android:layout_marginTop="14dp"
+                android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:duplicateParentState="true"
+                    android:src="@drawable/ic_swap_vert"
+                    android:tint="@color/settings_choice_text" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:duplicateParentState="true"
+                    android:fontFamily="@string/font_medium"
+                    android:text="@string/reorder"
+                    android:textColor="@color/settings_choice_text"
+                    android:textSize="16sp" />
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:duplicateParentState="true"
+                    android:src="@drawable/ic_chevron_right"
+                    android:tint="@color/settings_choice_subtext" />
+            </LinearLayout>
+
+            <!-- Section 1: Home -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:background="@drawable/settings_group_bg"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="2dp"
+                    android:fontFamily="@string/font_medium"
+                    android:text="@string/columns_label"
+                    android:textColor="#99FFFFFF"
+                    android:textSize="13sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/settings_segment_track_bg"
+                    android:clipChildren="false"
+                    android:orientation="horizontal"
+                    android:padding="4dp">
+
+                    <TextView android:id="@+id/columns4" style="@style/SettingsColumnChoice" android:text="4" />
+                    <TextView android:id="@+id/columns5" style="@style/SettingsColumnChoice" android:text="5" />
+                    <TextView android:id="@+id/columns6" style="@style/SettingsColumnChoice" android:text="6" />
+                    <TextView android:id="@+id/columns7" style="@style/SettingsColumnChoice" android:text="7" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/topBarButtonsChoice"
+                    style="@style/SettingsRow"
+                    android:layout_marginTop="14dp">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:duplicateParentState="true"
+                        android:src="@drawable/ic_home_settings"
+                        android:tint="@color/settings_choice_text" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:duplicateParentState="true"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:duplicateParentState="true"
+                            android:ellipsize="end"
+                            android:fontFamily="@string/font_medium"
+                            android:singleLine="true"
+                            android:text="@string/top_bar_buttons_label"
+                            android:textColor="@color/settings_choice_text"
+                            android:textSize="15sp" />
+
+                        <TextView
+                            android:id="@+id/topBarButtonsValue"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="1dp"
+                            android:duplicateParentState="true"
+                            android:ellipsize="end"
+                            android:singleLine="true"
+                            android:textColor="@color/settings_choice_subtext"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:duplicateParentState="true"
+                        android:src="@drawable/ic_chevron_right"
+                        android:tint="@color/settings_choice_subtext" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:clipChildren="false"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:id="@+id/wallpaperChoice"
+                        style="@style/SettingsRow"
+                        android:layout_width="0dp"
+                        android:layout_weight="1">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:duplicateParentState="true"
+                            android:src="@drawable/ic_picture"
+                            android:tint="@color/settings_choice_text" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:duplicateParentState="true"
+                            android:fontFamily="@string/font_medium"
+                            android:text="@string/wallpaper_label"
+                            android:textColor="@color/settings_choice_text"
+                            android:textSize="16sp" />
+
+                        <TextView
+                            android:id="@+id/wallpaperValue"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginEnd="6dp"
+                            android:layout_weight="1"
+                            android:duplicateParentState="true"
+                            android:ellipsize="end"
+                            android:gravity="end"
+                            android:singleLine="true"
+                            android:textColor="@color/settings_choice_subtext"
+                            android:textSize="14sp" />
+
+                        <ImageView
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:duplicateParentState="true"
+                            android:src="@drawable/ic_chevron_right"
+                            android:tint="@color/settings_choice_subtext" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/wallpaperReset"
+                        style="@style/SettingsRow"
+                        android:layout_width="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:fontFamily="@string/font_medium"
+                        android:gravity="center"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:text="@string/wallpaper_reset"
+                        android:textColor="@color/settings_choice_text"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/initialFocusChoice"
+                    style="@style/SettingsRow"
+                    android:layout_marginTop="10dp">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:duplicateParentState="true"
+                        android:src="@drawable/ic_apps_pill"
+                        android:tint="@color/settings_choice_text" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        android:duplicateParentState="true"
+                        android:ellipsize="end"
+                        android:fontFamily="@string/font_medium"
+                        android:singleLine="true"
+                        android:text="@string/initial_focus_label"
+                        android:textColor="@color/settings_choice_text"
+                        android:textSize="15sp" />
+
+                    <TextView
+                        android:id="@+id/initialFocusValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:duplicateParentState="true"
+                        android:fontFamily="@string/font_medium"
+                        android:textColor="@color/settings_choice_subtext"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/inputSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:clipChildren="false"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:id="@+id/inputTilesChoice"
+                        style="@style/SettingsRow"
+                        android:layout_width="0dp"
+                        android:layout_weight="1">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:duplicateParentState="true"
+                            android:src="@drawable/ic_input"
+                            android:tint="@color/settings_choice_text" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="11dp"
+                            android:layout_marginEnd="6dp"
+                            android:layout_weight="1"
+                            android:duplicateParentState="true"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:duplicateParentState="true"
+                                android:ellipsize="end"
+                                android:fontFamily="@string/font_medium"
+                                android:singleLine="true"
+                                android:text="@string/input_tiles_label"
+                                android:textColor="@color/settings_choice_text"
+                                android:textSize="15sp" />
+
+                            <TextView
+                                android:id="@+id/inputTilesValue"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="1dp"
+                                android:duplicateParentState="true"
+                                android:ellipsize="end"
+                                android:singleLine="true"
+                                android:textColor="@color/settings_choice_subtext"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:duplicateParentState="true"
+                            android:src="@drawable/ic_chevron_right"
+                            android:tint="@color/settings_choice_subtext" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/inputCustomizeChoice"
+                        style="@style/SettingsRow"
+                        android:layout_width="0dp"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:duplicateParentState="true"
+                            android:src="@drawable/ic_edit"
+                            android:tint="@color/settings_choice_text" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="11dp"
+                            android:layout_marginEnd="6dp"
+                            android:layout_weight="1"
+                            android:duplicateParentState="true"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:duplicateParentState="true"
+                                android:ellipsize="end"
+                                android:fontFamily="@string/font_medium"
+                                android:singleLine="true"
+                                android:text="@string/input_customize_label"
+                                android:textColor="@color/settings_choice_text"
+                                android:textSize="15sp" />
+
+                            <TextView
+                                android:id="@+id/inputCustomizeValue"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="1dp"
+                                android:duplicateParentState="true"
+                                android:ellipsize="end"
+                                android:singleLine="true"
+                                android:textColor="@color/settings_choice_subtext"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:duplicateParentState="true"
+                            android:src="@drawable/ic_chevron_right"
+                            android:tint="@color/settings_choice_subtext" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Section 2: App library -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/settings_group_bg"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <LinearLayout
+                    android:id="@+id/appCustomizeChoice"
+                    style="@style/SettingsRow">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:duplicateParentState="true"
+                        android:src="@drawable/ic_apps"
+                        android:tint="@color/settings_choice_text" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:duplicateParentState="true"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:duplicateParentState="true"
+                            android:ellipsize="end"
+                            android:fontFamily="@string/font_medium"
+                            android:singleLine="true"
+                            android:text="@string/app_customize_label"
+                            android:textColor="@color/settings_choice_text"
+                            android:textSize="15sp" />
+
+                        <TextView
+                            android:id="@+id/appCustomizeValue"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="1dp"
+                            android:duplicateParentState="true"
+                            android:ellipsize="end"
+                            android:singleLine="true"
+                            android:textColor="@color/settings_choice_subtext"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:duplicateParentState="true"
+                        android:src="@drawable/ic_chevron_right"
+                        android:tint="@color/settings_choice_subtext" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Language & Clock card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/settings_group_bg"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <LinearLayout
+                    android:id="@+id/languageChoice"
+                    style="@style/SettingsRow">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:duplicateParentState="true"
+                        android:src="@drawable/ic_language"
+                        android:tint="@color/settings_choice_text" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:duplicateParentState="true"
+                        android:fontFamily="@string/font_medium"
+                        android:text="@string/language_label"
+                        android:textColor="@color/settings_choice_text"
+                        android:textSize="16sp" />
+
+                    <TextView
+                        android:id="@+id/languageValue"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:duplicateParentState="true"
+                        android:ellipsize="end"
+                        android:gravity="end"
+                        android:singleLine="true"
+                        android:textColor="@color/settings_choice_subtext"
+                        android:textSize="14sp" />
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:duplicateParentState="true"
+                        android:src="@drawable/ic_chevron_right"
+                        android:tint="@color/settings_choice_subtext" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="2dp"
+                    android:layout_marginTop="14dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="15dp"
+                        android:layout_height="15dp"
+                        android:src="@drawable/ic_clock"
+                        android:tint="#99FFFFFF" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:fontFamily="@string/font_medium"
+                        android:text="@string/dream_name"
+                        android:textColor="#99FFFFFF"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/settings_segment_track_bg"
+                    android:clipChildren="false"
+                    android:orientation="horizontal"
+                    android:padding="4dp">
+
+                    <TextView android:id="@+id/clockSystem" style="@style/SettingsColumnChoice" android:text="@string/clock_format_system" />
+                    <TextView android:id="@+id/clock12" style="@style/SettingsColumnChoice" android:text="@string/clock_format_12" />
+                    <TextView android:id="@+id/clock24" style="@style/SettingsColumnChoice" android:text="@string/clock_format_24" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Section 4: Remote buttons -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/settings_group_bg"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <LinearLayout
+                    android:id="@+id/remoteKeysChoice"
+                    style="@style/SettingsRow">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:duplicateParentState="true"
+                        android:src="@drawable/ic_remote"
+                        android:tint="@color/settings_choice_text" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:duplicateParentState="true"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:duplicateParentState="true"
+                            android:ellipsize="end"
+                            android:fontFamily="@string/font_medium"
+                            android:singleLine="true"
+                            android:text="@string/remote_keys_label"
+                            android:textColor="@color/settings_choice_text"
+                            android:textSize="15sp" />
+
+                        <TextView
+                            android:id="@+id/remoteKeysValue"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="1dp"
+                            android:duplicateParentState="true"
+                            android:ellipsize="end"
+                            android:singleLine="true"
+                            android:textColor="@color/settings_choice_subtext"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:duplicateParentState="true"
+                        android:src="@drawable/ic_chevron_right"
+                        android:tint="@color/settings_choice_subtext" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Section 5: System & Reset -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/settings_group_bg"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <LinearLayout
+                    android:id="@+id/openOnStartChoice"
+                    style="@style/SettingsRow"
+                    android:layout_marginBottom="10dp"
+                    android:visibility="gone">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:duplicateParentState="true"
+                        android:src="@drawable/ic_rocket_start"
+                        android:tint="@color/settings_choice_text" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:duplicateParentState="true"
+                        android:fontFamily="@string/font_medium"
+                        android:text="@string/open_on_start_label"
+                        android:textColor="@color/settings_choice_text"
+                        android:textSize="16sp" />
+
+                    <TextView
+                        android:id="@+id/openOnStartValue"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:duplicateParentState="true"
+                        android:ellipsize="end"
+                        android:gravity="end"
+                        android:singleLine="true"
+                        android:textColor="@color/settings_choice_subtext"
+                        android:textSize="14sp" />
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:duplicateParentState="true"
+                        android:src="@drawable/ic_chevron_right"
+                        android:tint="@color/settings_choice_subtext" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/powerOnHomeChoice"
+                    style="@style/SettingsRow"
+                    android:layout_marginBottom="10dp">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:duplicateParentState="true"
+                        android:src="@drawable/ic_rocket_start"
+                        android:tint="@color/settings_choice_text" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:duplicateParentState="true"
+                        android:fontFamily="@string/font_medium"
+                        android:text="@string/power_on_home_label"
+                        android:textColor="@color/settings_choice_text"
+                        android:textSize="16sp" />
+
+                    <TextView
+                        android:id="@+id/powerOnHomeValue"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:duplicateParentState="true"
+                        android:ellipsize="end"
+                        android:gravity="end"
+                        android:singleLine="true"
+                        android:textColor="@color/settings_choice_subtext"
+                        android:textSize="14sp" />
+
+                    <ImageView
+                        android:id="@+id/powerOnHomeChevron"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:duplicateParentState="true"
+                        android:src="@drawable/ic_chevron_right"
+                        android:tint="@color/settings_choice_subtext" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/defaultHomeSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:clipChildren="false"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:id="@+id/defaultHomeChoice"
+                        style="@style/SettingsRow">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:duplicateParentState="true"
+                            android:src="@drawable/ic_home_settings"
+                            android:tint="@color/settings_choice_text" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:duplicateParentState="true"
+                            android:fontFamily="@string/font_medium"
+                            android:text="@string/home_settings"
+                            android:textColor="@color/settings_choice_text"
+                            android:textSize="16sp" />
+
+                        <TextView
+                            android:id="@+id/defaultHomeValue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginEnd="6dp"
+                            android:duplicateParentState="true"
+                            android:textColor="@color/settings_choice_subtext"
+                            android:textSize="14sp"
+                            android:visibility="gone" />
+
+                        <ImageView
+                            android:id="@+id/defaultHomeChevron"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:duplicateParentState="true"
+                            android:src="@drawable/ic_chevron_right"
+                            android:tint="@color/settings_choice_subtext" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/defaultHomeHelp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginTop="6dp"
+                        android:text="@string/home_settings_help"
+                        android:textColor="#80FFFFFF"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/fireOsModeChoice"
+                    style="@style/SettingsRow">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:duplicateParentState="true"
+                        android:src="@drawable/ic_settings"
+                        android:tint="@color/settings_choice_text" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_weight="1"
+                        android:duplicateParentState="true"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:duplicateParentState="true"
+                            android:fontFamily="@string/font_medium"
+                            android:text="@string/fire_os_mode_label"
+                            android:textColor="@color/settings_choice_text"
+                            android:textSize="16sp" />
+
+                        <TextView
+                            android:id="@+id/fireOsModeSub"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:duplicateParentState="true"
+                            android:ellipsize="end"
+                            android:singleLine="true"
+                            android:text="@string/fire_os_mode_desc"
+                            android:textColor="@color/settings_choice_subtext"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/fireOsModeValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:duplicateParentState="true"
+                        android:textColor="@color/settings_choice_subtext"
+                        android:textSize="14sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Section 6: Reset -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/settings_group_bg"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <LinearLayout
+                    android:id="@+id/followThemeChoice"
+                    style="@style/SettingsRow"
+                    android:background="@drawable/settings_reset_bg">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:duplicateParentState="true"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/settings_reset_text" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_weight="1"
+                        android:duplicateParentState="true"
+                        android:fontFamily="@string/font_medium"
+                        android:text="@string/follow_theme"
+                        android:textColor="@color/settings_reset_text"
+                        android:textSize="16sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/follow_theme_hint"
+                    android:textColor="#80FFFFFF"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

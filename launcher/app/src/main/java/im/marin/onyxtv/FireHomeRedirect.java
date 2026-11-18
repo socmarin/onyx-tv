@@ -31,7 +31,11 @@ final class FireHomeRedirect {
     private final PendingIntent target;
     private View cover;
     private int retriesRemaining;
+    private int coverAttachRetries;
+    private boolean destroyed;
+    private final int coverColor;
     private final Runnable timeout = this::hide;
+    private final Runnable attachRetry = this::attachCover;
     private final Runnable retry = new Runnable() {
         @Override
         public void run() {
@@ -49,6 +53,7 @@ final class FireHomeRedirect {
 
     FireHomeRedirect(AccessibilityService service, int coverColor) {
         this.service = service;
+        this.coverColor = coverColor;
         windows = service.getSystemService(WindowManager.class);
         alarms = service.getSystemService(AlarmManager.class);
         Intent home = new Intent(service, MainActivity.class)
@@ -58,6 +63,13 @@ final class FireHomeRedirect {
         target = PendingIntent.getActivity(service, 7421, home,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE,
                 ActivityOptions.makeCustomAnimation(service, 0, 0).toBundle());
+        coverAttachRetries = 5;
+        attachCover();
+        active = this;
+    }
+
+    private void attachCover() {
+        if (destroyed || cover != null || windows == null) return;
         View view = new View(service);
         view.setBackgroundColor(coverColor != 0 ? (coverColor | 0xFF000000) : Color.parseColor("#0E0F12"));
         view.setVisibility(View.GONE);
@@ -69,9 +81,16 @@ final class FireHomeRedirect {
                         | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                 PixelFormat.OPAQUE);
         params.windowAnimations = 0;
-        windows.addView(view, params);
-        cover = view;
-        active = this;
+        try {
+            windows.addView(view, params);
+            cover = view;
+        } catch (WindowManager.BadTokenException | IllegalStateException e) {
+            android.util.Log.w("FireHomeRedirect", "cover overlay deferred: " + e.getMessage());
+            if (--coverAttachRetries > 0) {
+                handler.removeCallbacks(attachRetry);
+                handler.postDelayed(attachRetry, 200);
+            }
+        }
     }
 
     void request() {
@@ -81,6 +100,7 @@ final class FireHomeRedirect {
         handler.removeCallbacks(timeout);
         handler.removeCallbacks(retry);
         handler.postDelayed(timeout, 1800);
+        if (cover == null) attachCover();
         if (!MainActivity.isWindowFocused() && cover != null && cover.getVisibility() != View.VISIBLE) {
             cover.setVisibility(View.VISIBLE);
         }
@@ -148,10 +168,15 @@ final class FireHomeRedirect {
     }
 
     void destroy() {
+        destroyed = true;
         canceled = true;
+        handler.removeCallbacks(attachRetry);
         hide();
         if (cover != null) {
-            windows.removeView(cover);
+            try {
+                windows.removeView(cover);
+            } catch (RuntimeException ignored) {
+            }
             cover = null;
         }
         if (active == this) active = null;

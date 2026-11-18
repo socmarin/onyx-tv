@@ -113,6 +113,12 @@ final class LibraryApps {
         return excludedApps.contains(pkg);
     }
 
+    /** True when pkg belongs in the App library catalogue (including self only while showSelf is enabled). */
+    static boolean includeInCatalog(Set<String> excludedApps, String pkg, String self, boolean showSelf) {
+        if (excludedFromCatalog(excludedApps, pkg)) return false;
+        return showSelf || !pkg.equals(self);
+    }
+
     /** OK on a library card opens the app (true) or changes its Home shortcut. app_library_selection's OK always
      *  changes it; otherwise an app on Home opens, and with library_ok_opens every app does. */
     static boolean okOpens(boolean selection, boolean openAll, boolean onHome) {

@@ -97,6 +97,8 @@ public class CardsTest {
         assertTrue(Cards.isReserved(Cards.fold("HDMI 2"), ui));
         assertTrue(Cards.isReserved(Cards.fold("AV"), ui));
         assertTrue(Cards.isReserved(Cards.fold("tv-vibehack"), ui));
+        assertTrue(Cards.isReserved(Cards.fold("Onyx"), ui));
+        assertTrue(Cards.isReserved(Cards.fold("Onyx TV"), ui));
         assertFalse(Cards.isReserved(Cards.fold("Xbox"), ui));
         assertTrue(Cards.isReserved("", ui));
         assertFalse(Cards.isReserved(Cards.fold("Retro"), ui));

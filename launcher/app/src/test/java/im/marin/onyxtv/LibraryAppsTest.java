@@ -164,4 +164,14 @@ public class LibraryAppsTest {
         assertEquals(1, hidden.size());
         assertEquals(1, excluded.size());
     }
+
+    @Test public void launcherItselfJoinsTheCatalogOnlyWhenEnabledAndNotExcluded() {
+        Set<String> excluded = Collections.singleton("com.example.factory");
+        assertFalse(LibraryApps.includeInCatalog(excluded, "im.marin.onyxtv", "im.marin.onyxtv", false));
+        assertTrue(LibraryApps.includeInCatalog(excluded, "im.marin.onyxtv", "im.marin.onyxtv", true));
+        assertFalse(LibraryApps.includeInCatalog(
+                Collections.singleton("im.marin.onyxtv"), "im.marin.onyxtv", "im.marin.onyxtv", true));
+        assertFalse(LibraryApps.includeInCatalog(excluded, "com.example.factory", "im.marin.onyxtv", true));
+        assertTrue(LibraryApps.includeInCatalog(excluded, "com.example.app", "im.marin.onyxtv", false));
+    }
 }

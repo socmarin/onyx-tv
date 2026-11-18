@@ -7,10 +7,15 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class CustomArtTest {
     @Rule public TemporaryFolder temp = new TemporaryFolder();
@@ -42,5 +47,25 @@ public class CustomArtTest {
         assertEquals(1, CustomArt.sampleSize(1024, 571, 640, 360));
         assertEquals(2, CustomArt.sampleSize(1280, 720, 640, 360));
         assertEquals(4, CustomArt.sampleSize(1024, 1024, 256, 256));
+    }
+
+    @Test public void mapAndListRoundTripEscapesSpecialCharacters() {
+        Map<String, String> map = new LinkedHashMap<>();
+        map.put("com.example.one", "App\tOne");
+        map.put("com.example.two", "Line1\nLine2\\End");
+        String encodedMap = CustomArt.encodeMap(map);
+        Map<String, String> parsedMap = CustomArt.parseMap(encodedMap);
+        assertEquals(map, parsedMap);
+
+        List<String> list = Arrays.asList("scan:485:com.netflix.ninja", "hold:KEYCODE_F1:input:hw\\1\ntab\tval");
+        String encodedList = CustomArt.encodeList(list);
+        assertEquals(list, CustomArt.parseList(encodedList));
+        assertTrue(CustomArt.parseList("").isEmpty());
+    }
+
+    @Test public void bannerTargetMatchesDocumented960x540Spec() {
+        assertEquals(960, CustomArt.BANNER_TARGET_WIDTH);
+        assertEquals(540, CustomArt.BANNER_TARGET_HEIGHT);
+        assertEquals(256, CustomArt.ICON_TARGET_SIZE);
     }
 }

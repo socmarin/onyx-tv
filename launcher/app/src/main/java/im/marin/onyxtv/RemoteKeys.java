@@ -463,6 +463,7 @@ final class RemoteKeys {
             }
             return;
         }
+        HomeKeyService.noteExplicitAppLaunch(pkg);
         Intent open = ctx.getPackageManager().getLeanbackLaunchIntentForPackage(pkg);
         if (open == null) open = ctx.getPackageManager().getLaunchIntentForPackage(pkg);
         if (open == null) return;

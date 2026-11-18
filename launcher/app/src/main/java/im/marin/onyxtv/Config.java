@@ -2,6 +2,8 @@ package im.marin.onyxtv;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.content.res.AssetManager;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.os.Environment;
@@ -23,6 +25,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -44,6 +47,26 @@ final class Config {
     static final String WALLPAPER_CHOICE_KEY = "wallpaper_choice";
     static final String DOCK_OPACITY_KEY = "dock_opacity";
     static final String CLOCK_FORMAT_KEY = "clock_format";
+    static final String LOCALE_KEY = "locale";
+    static final String INPUT_TILES_KEY = "input_tiles";
+    static final String INPUT_TILES_SELECTED_KEY = "input_tiles_selected";
+    static final String INPUT_LABELS_KEY = "input_labels";
+    static final String INPUT_BANNERS_KEY = "input_banners";
+    static final String INPUT_HIDDEN_KEY = "input_hidden";
+    static final String APP_LABELS_KEY = "custom_app_labels";
+    static final String APP_ICONS_KEY = "custom_app_icons";
+    static final String APP_BANNERS_KEY = "custom_app_banners";
+    static final String APP_HIDDEN_KEY = "custom_app_hidden";
+    static final String INITIAL_FOCUS_KEY = "initial_focus";
+    static final String SHOW_NETWORK_PILL_KEY = "show_network_pill";
+    static final String SHOW_INPUTS_PILL_KEY = "show_inputs_pill";
+    static final String SHOW_SETTINGS_PILL_KEY = "show_settings_pill";
+    static final String CUSTOM_APP_KEYS_KEY = "custom_app_keys";
+    static final String POWER_ON_HOME_MODE_KEY = "power_on_home_mode";
+    static final String FIRE_OS_MODE_KEY = "fire_os_mode";
+    static final String POWER_ON_OFF = "off";
+    static final String POWER_ON_LIVE_TV = "live_tv";
+    static final String POWER_ON_ALWAYS = "always";
     /**
      * Counts the changes made in Launcher settings. Home remembers the count it was built with and rebuilds on
      * resume when it differs, however the settings were left (see MainActivity#onResume).
@@ -72,10 +95,12 @@ final class Config {
     final Map<String, String> launchActions;
     /** Package to the name its tile shows instead of the app's label (config.xml, app_labels). */
     final Map<String, String> appLabels;
+    /** Package to a custom 1:1 icon name (files/app_icons/) shown in App library and icon tiles (app_icons). */
+    final Map<String, String> appIcons;
     /** Package to a banner name (files/banners/ or bundled banner_* drawable) shown on its tile (app_banners). */
     final Map<String, String> appBanners;
-    /** Package to an icon name (files/icons/ or bundled ic_* drawable) shown in the App library (app_icons). */
-    final Map<String, String> appIcons;
+    /** Packages hidden by the user from both Home and App library in Onyx settings. */
+    final Set<String> userHiddenApps;
     final String sourcePanelService;
     final String sourcePanelAction;
     /** One int extra for the source panel, "name=value" (config.xml source_panel_extra); empty for none. */
@@ -130,6 +155,8 @@ final class Config {
     final boolean showNetworkPill;
     /** Show the Inputs pill when the TV has inputs to list (config.xml, show_inputs_pill). */
     final boolean showInputsPill;
+    /** Show the Settings pill in the top bar (config.xml, show_settings_pill). */
+    final boolean showSettingsPill;
     /** Wi-Fi and Settings pills as round icon buttons, Inputs keeps its label (config.xml icon_only_buttons). */
     final boolean iconOnlyButtons;
     /** The Inputs pill as a round icon button too (config.xml icon_only_inputs). */
@@ -199,6 +226,12 @@ final class Config {
     final boolean inputsConnectedOnly;
     /** Only CEC device rows in the Inputs menu show a connection state, never a bare HDMI port (config.xml / theme inputs_cec_state_only). */
     final boolean inputsCecStateOnly;
+    /** Show discovered physical TV inputs as app tiles on Home (Launcher settings / theme input_tiles). */
+    final boolean inputTiles;
+    /** Explicit subset of inputIds chosen in Settings, or null when unset (theme input_tiles decides all). */
+    final Set<String> inputTilesSelected;
+    /** Hardware inputs explicitly hidden by the user in Settings (removed from Home, Inputs menu, and tiles picker). */
+    final Set<String> hiddenInputs;
     /** "12", "24" or "system" (theme clock_format, or Launcher settings' Clock row); see ClockFormat. */
     final String clockFormat;
     /** The Settings button opens the quick settings panel instead of the TV's Settings (settings_key_panel). */
@@ -265,8 +298,20 @@ final class Config {
     final boolean wallpaperCaptions;
     /** Answer VIEW_INPUTS with the Inputs menu (handle_view_inputs); see InputsRequestActivity. */
     final boolean handleViewInputs;
-    /** Hold OK on a tile opens a menu (Move, Remove from Home, App info) instead of App info (config.xml / theme tile_menu). */
+    /** Hold OK on a tile opens a menu (Move, Remove from Home, optionally App info) instead of App info (config.xml / theme tile_menu). */
     final boolean tileMenu;
+    /** Show "App info" in the Home tile long-press menu (config.xml / theme tile_menu_app_info). */
+    final boolean tileMenuAppInfo;
+    /** Placing a tile picked up via the tile menu's "Move" immediately exits reorder mode (config.xml / theme tile_move_exits_reorder). */
+    final boolean tileMoveExitsReorder;
+    /** Show the launcher's own icon in the App library to open Launcher settings (config.xml / theme library_onyx_settings). */
+    final boolean libraryOnyxSettings;
+    /** Show "Open" in the App library long-press menu (config.xml / theme library_menu_open). */
+    final boolean libraryMenuOpen;
+    /** Show "Uninstall" in the App library long-press menu (config.xml / theme library_menu_uninstall). */
+    final boolean libraryMenuUninstall;
+    /** Show "App info" in the App library long-press menu (config.xml / theme library_menu_app_info). */
+    final boolean libraryMenuAppInfo;
     /** Offer "Replace with another app" / "Add to dock" in the tile menu and "Edit dock" in Settings while dock_row is on (config.xml / theme dock_edit). */
     final boolean dockEdit;
     /** With wifi_status_color, the icon orange while connected without internet (a captive portal) and red while offline (config.xml, wifi_status_warnings). */
@@ -290,13 +335,16 @@ final class Config {
     final float focusScale;
     final int dockMarginTop;
     final boolean initialFocus;
+    final boolean fireOsDetected;
+    final boolean fireOsMode;
+    final String powerOnHomeMode;
 
     private Config(List<String> dockApps, boolean fillDock, List<String> hiddenApps, List<String> libraryApps, List<String> libraryExcludedApps, String liveTvPackage,
                    String liveTvAction, String liveTvInputId, Map<String, String> launchActions, Map<String, String> appLabels,
-                   Map<String, String> appBanners, Map<String, String> appIcons, String sourcePanelService, String sourcePanelAction,
+                   Map<String, String> appIcons, Map<String, String> appBanners, Set<String> userHiddenApps, String sourcePanelService, String sourcePanelAction,
                    String sourcePanelExtra, boolean coocaaSources, String inputAction, List<String> inputSources,
                    String inputUriScheme, int columns, int rowsBelowDock, boolean animations, boolean advancedEffects,
-                   boolean shamsiDate, String greetingName, boolean moduleCards, boolean reducedMotion, boolean bootToLiveTv, boolean openOnStartChoice, boolean dockTitle, boolean dockRow, boolean topMenu, boolean launcherSettingsButton, boolean reorderButton, boolean showNetworkPill, boolean showInputsPill, boolean iconOnlyButtons, boolean iconOnlyInputs, boolean libraryButton, boolean showLibraryPill, int wifiLabelWidth, boolean alwaysShowNames, boolean wallpaperTrueColor, boolean focusOvershoot, String vpnApp,
+                   boolean shamsiDate, String greetingName, boolean moduleCards, boolean reducedMotion, boolean bootToLiveTv, boolean openOnStartChoice, boolean dockTitle, boolean dockRow, boolean topMenu, boolean launcherSettingsButton, boolean reorderButton, boolean showNetworkPill, boolean showInputsPill, boolean showSettingsPill, boolean iconOnlyButtons, boolean iconOnlyInputs, boolean libraryButton, boolean showLibraryPill, int wifiLabelWidth, boolean alwaysShowNames, boolean wallpaperTrueColor, boolean focusOvershoot, String vpnApp,
                    boolean showHomeSettingsShortcut, boolean showStats, String gameDay, boolean appLibrary, boolean appLibrarySelection, boolean libraryOkOpens, boolean uniformTiles, int backgroundColor, int skyIntensity,
                    int[] settingsKeycodes, boolean settingsKeyPanel, boolean restoreKeyServices, boolean wallpaperEnabled, File wallpaper, List<File> wallpapers,
                    int wallpaperRotationMinutes, int wallpaperDim, int dockOpacity, String wallpaperOrder, boolean overlayApplied,
@@ -307,9 +355,17 @@ final class Config {
                    boolean handleViewInputs, boolean tileMenu, boolean dockEdit, boolean dockEvenPadding, boolean dockBand, boolean cinematicDots, boolean cinematicWhiteFocus, boolean wifiStatusColor, int cinematicScrim, int cinematicArt,
                    Map<String, Set<String>> wallpaperMoods, boolean gamepadPassthrough, boolean consumeVolumeKeys, boolean homeIgnoreChannelKeys, boolean powerOnHome, boolean homeLongPressHome, boolean wifiStatusWarnings, List<String> topBarApps, boolean showGreeting, boolean headerWhite, boolean clockWallpaper, int clockWallpaperDim, boolean clockGlow, String glassStyle, boolean singleRow, boolean dockBandAll, boolean lunarDate, int lunarUtcOffset, boolean dateBelowClock, boolean vpnPill, String locale, boolean powerOnHomeAlways, boolean inputsConnectedOnly, boolean inputsCecStateOnly,
                    int openOnStartNetworkWait, boolean openOnStartOnWake, boolean iconOnlyVpn, String clockFormat, boolean backOpensClock, boolean glowSnap,
-                   float focusScale, int dockMarginTop, boolean initialFocus) {
+                   float focusScale, int dockMarginTop, boolean initialFocus,
+                   boolean fireOsDetected, boolean fireOsMode, String powerOnHomeMode,
+                   boolean tileMenuAppInfo, boolean tileMoveExitsReorder, boolean libraryOnyxSettings, boolean libraryMenuOpen, boolean libraryMenuUninstall, boolean libraryMenuAppInfo, boolean inputTiles, Set<String> inputTilesSelected, Set<String> hiddenInputs) {
         this.handleViewInputs = handleViewInputs;
         this.tileMenu = tileMenu;
+        this.tileMenuAppInfo = tileMenuAppInfo;
+        this.tileMoveExitsReorder = tileMoveExitsReorder;
+        this.libraryOnyxSettings = libraryOnyxSettings;
+        this.libraryMenuOpen = libraryMenuOpen;
+        this.libraryMenuUninstall = libraryMenuUninstall;
+        this.libraryMenuAppInfo = libraryMenuAppInfo;
         this.dockEdit = dockEdit;
         this.inputKeycodes = inputKeycodes;
         this.appKeys = Collections.unmodifiableList(appKeys);
@@ -327,8 +383,10 @@ final class Config {
         this.liveTvInputId = liveTvInputId;
         this.launchActions = Collections.unmodifiableMap(launchActions);
         this.appLabels = Collections.unmodifiableMap(appLabels);
-        this.appBanners = Collections.unmodifiableMap(appBanners);
         this.appIcons = Collections.unmodifiableMap(appIcons);
+        this.appBanners = Collections.unmodifiableMap(appBanners);
+        this.userHiddenApps = userHiddenApps == null
+                ? Collections.emptySet() : Collections.unmodifiableSet(new HashSet<>(userHiddenApps));
         this.sourcePanelService = sourcePanelService;
         this.sourcePanelAction = sourcePanelAction;
         this.sourcePanelExtra = sourcePanelExtra;
@@ -358,6 +416,7 @@ final class Config {
         this.reorderButton = reorderButton;
         this.showNetworkPill = showNetworkPill;
         this.showInputsPill = showInputsPill;
+        this.showSettingsPill = showSettingsPill;
         this.iconOnlyButtons = iconOnlyButtons;
         this.iconOnlyInputs = iconOnlyInputs;
         this.iconOnlyVpn = iconOnlyVpn;
@@ -417,6 +476,8 @@ final class Config {
         this.openOnStartNetworkWait = openOnStartNetworkWait;
         this.openOnStartOnWake = openOnStartOnWake;
         this.clockFormat = clockFormat;
+        this.inputTiles = inputTiles;
+        this.inputTilesSelected = inputTilesSelected;
         this.wifiStatusWarnings = wifiStatusWarnings;
         this.topBarApps = Collections.unmodifiableList(topBarApps);
         this.showGreeting = showGreeting;
@@ -432,6 +493,11 @@ final class Config {
         this.focusScale = focusScale;
         this.dockMarginTop = dockMarginTop;
         this.initialFocus = initialFocus;
+        this.fireOsDetected = fireOsDetected;
+        this.fireOsMode = fireOsMode;
+        this.powerOnHomeMode = powerOnHomeMode;
+        this.hiddenInputs = hiddenInputs == null
+                ? Collections.emptySet() : Collections.unmodifiableSet(new HashSet<>(hiddenInputs));
     }
 
     /** A known glow_style, or radial (the default) for anything else. */
@@ -480,8 +546,8 @@ final class Config {
         String liveTvInputId = res.getString(R.string.live_tv_input_id).trim();
         List<String> launchActions = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.launch_actions)));
         List<String> appLabels = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.app_labels)));
-        List<String> appBanners = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.app_banners)));
         List<String> appIcons = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.app_icons)));
+        List<String> appBanners = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.app_banners)));
         String panelService = res.getString(R.string.source_panel_service).trim();
         String panelAction = res.getString(R.string.source_panel_action).trim();
         String panelExtra = res.getString(R.string.source_panel_extra).trim();
@@ -510,6 +576,7 @@ final class Config {
         boolean reorderButton = res.getBoolean(R.bool.reorder_button);
         boolean showNetworkPill = res.getBoolean(R.bool.show_network_pill);
         boolean showInputsPill = res.getBoolean(R.bool.show_inputs_pill);
+        boolean showSettingsPill = res.getBoolean(R.bool.show_settings_pill);
         boolean iconOnlyButtons = res.getBoolean(R.bool.icon_only_buttons);
         boolean iconOnlyInputs = res.getBoolean(R.bool.icon_only_inputs);
         boolean iconOnlyVpn = res.getBoolean(R.bool.icon_only_vpn);
@@ -523,6 +590,8 @@ final class Config {
         boolean focusOvershoot = res.getBoolean(R.bool.focus_overshoot);
         boolean wallpaperCaptions = res.getBoolean(R.bool.wallpaper_captions);
         boolean tileMenu = res.getBoolean(R.bool.tile_menu);
+        boolean tileMenuAppInfo = res.getBoolean(R.bool.tile_menu_app_info);
+        boolean tileMoveExitsReorder = res.getBoolean(R.bool.tile_move_exits_reorder);
         boolean dockEdit = res.getBoolean(R.bool.dock_edit);
         String vpn = res.getString(R.string.vpn_app).trim();
         boolean homeSettings = res.getBoolean(R.bool.show_home_settings_shortcut);
@@ -531,8 +600,13 @@ final class Config {
         boolean library = res.getBoolean(R.bool.app_library);
         boolean librarySelection = res.getBoolean(R.bool.app_library_selection);
         boolean libraryOkOpens = res.getBoolean(R.bool.library_ok_opens);
+        boolean libraryOnyxSettings = res.getBoolean(R.bool.library_onyx_settings);
+        boolean libraryMenuOpen = res.getBoolean(R.bool.library_menu_open);
+        boolean libraryMenuUninstall = res.getBoolean(R.bool.library_menu_uninstall);
+        boolean libraryMenuAppInfo = res.getBoolean(R.bool.library_menu_app_info);
+        boolean inputTiles = false;
         boolean uniformTiles = res.getBoolean(R.bool.uniform_tiles);
-        int background = 0xFF000000;
+        int background = parseBgColor(res.getString(R.string.background_color), 0xFF0E0F12);
         int skyIntensity = res.getInteger(R.integer.sky_intensity);
         int[] settingsKeycodes = res.getIntArray(R.array.settings_key_keycodes);
         boolean settingsKeyPanel = res.getBoolean(R.bool.settings_key_panel);
@@ -579,9 +653,9 @@ final class Config {
         int clockWallpaperDim = res.getInteger(R.integer.clock_wallpaper_dim);
         boolean clockGlow = res.getBoolean(R.bool.clock_glow);
         String glassStyle = res.getString(R.string.glass_style);
-        float focusScale = 0f;
-        int dockMarginTop = -1;
-        boolean initialFocus = true;
+        float focusScale = parseFocusScale(res.getString(R.string.focus_scale), 1.25f);
+        int dockMarginTop = res.getInteger(R.integer.dock_margin_top);
+        boolean initialFocus = res.getBoolean(R.bool.initial_focus);
         boolean singleRow = res.getBoolean(R.bool.single_row);
         boolean dockBandAll = res.getBoolean(R.bool.dock_band_all);
         boolean applied = false;
@@ -602,8 +676,8 @@ final class Config {
             liveTvInputId = string(json, "live_tv_input_id", liveTvInputId);
             launchActions = stringList(json, "launch_actions", launchActions);
             appLabels = stringList(json, "app_labels", appLabels);
-            appBanners = stringList(json, "app_banners", appBanners);
             appIcons = stringList(json, "app_icons", appIcons);
+            appBanners = stringList(json, "app_banners", appBanners);
             panelService = string(json, "source_panel_service", panelService);
             panelAction = string(json, "source_panel_action", panelAction);
             panelExtra = string(json, "source_panel_extra", panelExtra).trim();
@@ -632,6 +706,7 @@ final class Config {
             reorderButton = bool(json, "reorder_button", reorderButton);
             showNetworkPill = bool(json, "show_network_pill", showNetworkPill);
             showInputsPill = bool(json, "show_inputs_pill", showInputsPill);
+            showSettingsPill = bool(json, "show_settings_pill", showSettingsPill);
             iconOnlyButtons = bool(json, "icon_only_buttons", iconOnlyButtons);
             iconOnlyInputs = bool(json, "icon_only_inputs", iconOnlyInputs);
             iconOnlyVpn = bool(json, "icon_only_vpn", iconOnlyVpn);
@@ -645,6 +720,8 @@ final class Config {
             focusOvershoot = bool(json, "focus_overshoot", focusOvershoot);
             wallpaperCaptions = bool(json, "wallpaper_captions", wallpaperCaptions);
             tileMenu = bool(json, "tile_menu", tileMenu);
+            tileMenuAppInfo = bool(json, "tile_menu_app_info", tileMenuAppInfo);
+            tileMoveExitsReorder = bool(json, "tile_move_exits_reorder", tileMoveExitsReorder);
             dockEdit = bool(json, "dock_edit", dockEdit);
             vpn = string(json, "vpn_app", vpn);
             homeSettings = bool(json, "show_home_settings_shortcut", homeSettings);
@@ -653,6 +730,10 @@ final class Config {
             library = bool(json, "app_library", library);
             librarySelection = bool(json, "app_library_selection", librarySelection);
             libraryOkOpens = bool(json, "library_ok_opens", libraryOkOpens);
+            libraryOnyxSettings = bool(json, "library_onyx_settings", libraryOnyxSettings);
+            libraryMenuOpen = bool(json, "library_menu_open", libraryMenuOpen);
+            libraryMenuUninstall = bool(json, "library_menu_uninstall", libraryMenuUninstall);
+            libraryMenuAppInfo = bool(json, "library_menu_app_info", libraryMenuAppInfo);
             uniformTiles = bool(json, "uniform_tiles", uniformTiles);
             background = color(json, "background_color", background);
             skyIntensity = integer(json, "sky_intensity", skyIntensity, 0, 100);
@@ -680,6 +761,7 @@ final class Config {
             inputsConnectedOnly = bool(json, "inputs_connected_only", inputsConnectedOnly);
             inputsCecStateOnly = bool(json, "inputs_cec_state_only", inputsCecStateOnly);
             clockFormat = string(json, CLOCK_FORMAT_KEY, clockFormat);
+            inputTiles = bool(json, INPUT_TILES_KEY, inputTiles);
             dockGlass = bool(json, "dock_glass", dockGlass);
             dockEvenPadding = bool(json, "dock_even_padding", dockEvenPadding);
             dockBand = bool(json, "dock_band", dockBand);
@@ -710,13 +792,34 @@ final class Config {
         }
         // A top-bar app is moved there, not copied: it leaves the grid.
         for (String pkg : topBarApps) if (!hidden.contains(pkg)) hidden.add(pkg);
-        // Never surface the redirected stock launcher in Home or the App library.
-        excludeRedirectTarget(hidden, libraryExcludedApps, stockHomeRedirect);
         // A theme push or reset invalidates choices made on the TV. On first use, remember the
         // current theme without clearing choices from an older launcher version.
         SharedPreferences choices = ctx.getSharedPreferences(SETTINGS_NAME, Context.MODE_PRIVATE);
         // Unmounted storage looks like a theme reset; compare only once the file is readable.
         if (mounted) syncThemeChoices(choices, dir, file);
+
+        boolean fireOsDetected = SystemSettings.isFireOs(ctx);
+        Boolean fireOsUserChoice = choices.contains(FIRE_OS_MODE_KEY)
+                ? choices.getBoolean(FIRE_OS_MODE_KEY, true) : null;
+        stockHomeRedirect = resolveFireOsStockHome(fireOsDetected, fireOsUserChoice, stockHomeRedirect);
+        restoreKeyServices = resolveFireOsRestore(fireOsDetected, fireOsUserChoice, restoreKeyServices);
+        boolean fireOsMode = fireOsDetected && SystemSettings.FIRE_HOME_PKG.equals(stockHomeRedirect);
+        // Never surface the redirected stock launcher in Home or the App library.
+        excludeRedirectTarget(hidden, libraryExcludedApps, stockHomeRedirect);
+
+        PackageManager pm = ctx.getPackageManager();
+        liveTv = resolveAutoLiveTvPackage(json != null && json.has("live_tv_package"), liveTv,
+                SystemSettings.isInstalled(pm, liveTv),
+                SystemSettings.isInstalled(pm, SystemSettings.VEWD_TV_PKG),
+                SystemSettings.hasAmazonYacLiveTv(ctx));
+        liveTvInputId = resolveAutoLiveTvInputId(json != null && json.has("live_tv_input_id"),
+                liveTvInputId, liveTv,
+                SystemSettings.hasTvInputId(ctx, SystemSettings.VEWD_TERRESTRIAL_INPUT_ID));
+
+        String powerOnHomeMode = resolvePowerOnHomeMode(fireOsDetected,
+                choices.getString(POWER_ON_HOME_MODE_KEY, null), powerOnHome, powerOnHomeAlways);
+        powerOnHome = POWER_ON_LIVE_TV.equals(powerOnHomeMode) || POWER_ON_ALWAYS.equals(powerOnHomeMode);
+        powerOnHomeAlways = POWER_ON_ALWAYS.equals(powerOnHomeMode);
         int chosenColumns = choices.getInt("columns", columns);
         if (chosenColumns >= 4 && chosenColumns <= 7) columns = chosenColumns;
         int chosenRows = choices.getInt(ROWS_BELOW_DOCK_KEY, rowsBelow);
@@ -733,6 +836,44 @@ final class Config {
         int dockOpacity = json == null ? 100 : integer(json, "dock_opacity", 100, 30, 100);
         dockOpacity = chosenDockOpacity(choices.getInt(DOCK_OPACITY_KEY, -1), dockOpacity);
         clockFormat = choices.getString(CLOCK_FORMAT_KEY, clockFormat);
+        locale = choices.getString(LOCALE_KEY, locale);
+        initialFocus = choices.getBoolean(INITIAL_FOCUS_KEY, initialFocus);
+        showNetworkPill = choices.getBoolean(SHOW_NETWORK_PILL_KEY, showNetworkPill);
+        showInputsPill = choices.getBoolean(SHOW_INPUTS_PILL_KEY, showInputsPill);
+        showSettingsPill = choices.getBoolean(SHOW_SETTINGS_PILL_KEY, showSettingsPill);
+        Set<String> inputTilesSelected = null;
+        if (choices.contains(INPUT_TILES_SELECTED_KEY)) {
+            Set<String> raw = choices.getStringSet(INPUT_TILES_SELECTED_KEY, Collections.emptySet());
+            inputTilesSelected = raw == null ? Collections.emptySet() : Collections.unmodifiableSet(new HashSet<>(raw));
+            inputTiles = !inputTilesSelected.isEmpty();
+        } else {
+            inputTiles = choices.getBoolean(INPUT_TILES_KEY, inputTiles);
+        }
+        Set<String> rawHiddenInputs = choices.getStringSet(INPUT_HIDDEN_KEY, Collections.emptySet());
+        Set<String> hiddenInputs = rawHiddenInputs == null || rawHiddenInputs.isEmpty()
+                ? Collections.emptySet() : Collections.unmodifiableSet(new HashSet<>(rawHiddenInputs));
+        Set<String> rawUserHiddenApps = choices.getStringSet(APP_HIDDEN_KEY, Collections.emptySet());
+        Set<String> userHiddenApps = new HashSet<>();
+        String selfPkg = ctx.getPackageName();
+        if (rawUserHiddenApps != null) {
+            for (String pkg : rawUserHiddenApps) {
+                if (pkg != null && !pkg.isEmpty() && !pkg.equals(selfPkg)) {
+                    userHiddenApps.add(pkg);
+                    if (!hidden.contains(pkg)) hidden.add(pkg);
+                    if (!libraryExcludedApps.contains(pkg)) libraryExcludedApps.add(pkg);
+                }
+            }
+        }
+        List<String> userAppKeys = RemoteKeyCustom.readEntries(choices);
+        if (!userAppKeys.isEmpty()) {
+            appKeys = new ArrayList<>(appKeys);
+            windowRedirects = new ArrayList<>(windowRedirects);
+            for (String entry : userAppKeys) {
+                String windowRule = RemoteKeyCustom.toWindowRedirectRule(entry);
+                if (windowRule != null) windowRedirects.add(windowRule);
+                else appKeys.add(entry);
+            }
+        }
         String wallpaperOrder = json == null ? WallpaperRotation.ORDER_SHUFFLE
                 : string(json, "wallpaper_order", WallpaperRotation.ORDER_SHUFFLE);
         // An unknown order must not silently change how an existing collection rotates.
@@ -743,10 +884,11 @@ final class Config {
         }
         if (wallpapers.isEmpty() && wallpaper != null) wallpapers.add(wallpaper);
         // An on-TV wallpaper pick overrides the theme: a filename from the wallpapers/
-        // collection, or "none". Unset means the theme decides (off by default).
+        // collection, built-in wallpapers, or "none". Unset means the theme decides (off by default).
         String wallpaperChoice = choices.getString(WALLPAPER_CHOICE_KEY, null);
-        List<File> chosen = WallpaperRotation.chosen(dir == null ? Collections.emptyList()
-                : WallpaperRotation.images(new File(dir, "wallpapers")), wallpaper, wallpaperChoice);
+        List<File> chosen = WallpaperRotation.chosen(
+                wallpaperChoice != null ? allWallpapers(ctx, dir) : Collections.emptyList(),
+                wallpaper, wallpaperChoice);
         if (chosen != null) {
             wallpapers.clear();
             wallpapers.addAll(chosen);
@@ -760,10 +902,28 @@ final class Config {
 
         Map<String, String> launchActionMap = packageMap(launchActions);
         ensureVeneziaStoreAction(launchActionMap, library);
-        return new Config(dock, fillDock, hidden, libraryApps, libraryExcludedApps, liveTv, liveTvAction, liveTvInputId, launchActionMap, packageMap(appLabels),
-                packageMap(appBanners), packageMap(appIcons), panelService, panelAction, panelExtra, coocaaSources, inputAction, inputSources, inputUriScheme, Math.max(1, columns),
+        Map<String, String> appLabelMap = packageMap(appLabels);
+        for (Map.Entry<String, String> e : CustomArt.readMap(choices, APP_LABELS_KEY).entrySet()) {
+            appLabelMap.put(e.getKey(), e.getValue());
+        }
+        for (Map.Entry<String, String> e : InputCustom.readMap(choices, INPUT_LABELS_KEY).entrySet()) {
+            appLabelMap.put(TvInputTiles.INPUT_PREFIX + e.getKey(), e.getValue());
+        }
+        Map<String, String> appIconMap = packageMap(appIcons);
+        for (Map.Entry<String, String> e : CustomArt.readMap(choices, APP_ICONS_KEY).entrySet()) {
+            appIconMap.put(e.getKey(), e.getValue());
+        }
+        Map<String, String> appBannerMap = packageMap(appBanners);
+        for (Map.Entry<String, String> e : CustomArt.readMap(choices, APP_BANNERS_KEY).entrySet()) {
+            appBannerMap.put(e.getKey(), e.getValue());
+        }
+        for (Map.Entry<String, String> e : InputCustom.readMap(choices, INPUT_BANNERS_KEY).entrySet()) {
+            appBannerMap.put(TvInputTiles.INPUT_PREFIX + e.getKey(), e.getValue());
+        }
+        return new Config(dock, fillDock, hidden, libraryApps, libraryExcludedApps, liveTv, liveTvAction, liveTvInputId, launchActionMap, appLabelMap,
+                appIconMap, appBannerMap, userHiddenApps, panelService, panelAction, panelExtra, coocaaSources, inputAction, inputSources, inputUriScheme, Math.max(1, columns),
                 Math.max(0, rowsBelow), animations, advancedEffects, shamsi, greetingName, moduleCards, reducedMotion, bootToLiveTv,
-                openOnStartChoice, dockTitle, dockRow, topMenu, launcherSettingsButton, reorderButton, showNetworkPill, showInputsPill,
+                openOnStartChoice, dockTitle, dockRow, topMenu, launcherSettingsButton, reorderButton, showNetworkPill, showInputsPill, showSettingsPill,
                 iconOnlyButtons, iconOnlyInputs, libraryButton, showLibraryPill, wifiLabelWidth, alwaysShowNames, wallpaperTrueColor, focusOvershoot,
                 vpn, homeSettings, showStats, gameDay, library, librarySelection, libraryOkOpens, uniformTiles, background,
                 Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, restoreKeyServices, wallpaperEnabled, wallpaper,
@@ -776,7 +936,9 @@ final class Config {
                 Math.max(0, Math.min(90, clockWallpaperDim)), clockGlow, glassStyle, singleRow && dockRow, dockBandAll, lunar, lunarOffset,
                 dateBelowClock, vpnPill, locale, powerOnHomeAlways, inputsConnectedOnly, inputsCecStateOnly,
                 Math.max(0, Math.min(600, openOnStartNetworkWait)), openOnStartOnWake, iconOnlyVpn, clockFormat, backOpensClock, glowSnap,
-                focusScale, dockMarginTop, initialFocus);
+                focusScale, dockMarginTop, initialFocus,
+                fireOsDetected, fireOsMode, powerOnHomeMode,
+                tileMenuAppInfo, tileMoveExitsReorder, libraryOnyxSettings, libraryMenuOpen, libraryMenuUninstall, libraryMenuAppInfo, inputTiles, inputTilesSelected, hiddenInputs);
     }
 
     /**
@@ -809,29 +971,295 @@ final class Config {
         return races;
     }
 
+    static boolean shouldClearOnTvChoices(String seen, String signature, String token) {
+        if ("absent".equals(token)) return false;
+        return seen == null || !seen.equals(signature);
+    }
+
     private static void syncThemeChoices(SharedPreferences choices, File dir, File config) {
         File revision = dir == null ? null : new File(dir, THEME_REVISION_NAME);
         String token = revisionToken(revision);
         String signature = fileStamp(config) + ":" + token;
         String seen = choices.getString(THEME_SIGNATURE_KEY, null);
-        if (seen == null) {
-            // Existing preferences survive an app upgrade, unless the first launch follows an
-            // explicit theme push or reset by the updated tools.
+        if (seen == null || !seen.equals(signature)) {
+            // Device-level config.json overrides without a theme_revision push (e.g. hardware
+            // power MAC) preserve existing on-TV UI customizations.
             SharedPreferences.Editor editor = choices.edit();
-            if (!"absent".equals(token)) editor.remove("columns").remove("animations")
-                    .remove("advanced_effects").remove(ROWS_BELOW_DOCK_KEY).remove(WALLPAPER_CHOICE_KEY)
-                    .remove(DOCK_OPACITY_KEY).remove(CLOCK_FORMAT_KEY);
+            if (shouldClearOnTvChoices(seen, signature, token)) clearOnTvChoices(editor, false);
             editor.putString(THEME_SIGNATURE_KEY, signature).commit();
-        } else if (!seen.equals(signature)) {
-            choices.edit().remove("columns").remove("animations").remove("advanced_effects")
-                    .remove(ROWS_BELOW_DOCK_KEY).remove(WALLPAPER_CHOICE_KEY).remove(DOCK_OPACITY_KEY)
-                    .remove(CLOCK_FORMAT_KEY).putString(THEME_SIGNATURE_KEY, signature).commit();
         }
+    }
+
+    static void clearOnTvChoices(SharedPreferences.Editor editor, boolean includeBootApp) {
+        if (editor == null) return;
+        editor.remove("columns").remove("animations")
+                .remove("advanced_effects").remove(ROWS_BELOW_DOCK_KEY).remove(WALLPAPER_CHOICE_KEY)
+                .remove(DOCK_OPACITY_KEY).remove(CLOCK_FORMAT_KEY).remove(LOCALE_KEY)
+                .remove(INPUT_TILES_KEY).remove(INPUT_TILES_SELECTED_KEY)
+                .remove(INITIAL_FOCUS_KEY).remove(SHOW_NETWORK_PILL_KEY)
+                .remove(SHOW_INPUTS_PILL_KEY).remove(SHOW_SETTINGS_PILL_KEY)
+                .remove(POWER_ON_HOME_MODE_KEY).remove(FIRE_OS_MODE_KEY);
+        if (includeBootApp) editor.remove(OpenOnStart.KEY);
+        InputCustom.clearAll(editor);
+        AppCustom.clearAll(editor);
+        RemoteKeyCustom.clearAll(editor);
+    }
+
+    static boolean hasOnTvChoices(SharedPreferences choices) {
+        return choices != null && (choices.contains("columns")
+                || choices.contains(ROWS_BELOW_DOCK_KEY)
+                || choices.contains("animations") || choices.contains("advanced_effects")
+                || choices.contains(WALLPAPER_CHOICE_KEY) || choices.contains(DOCK_OPACITY_KEY)
+                || choices.contains(CLOCK_FORMAT_KEY) || choices.contains(LOCALE_KEY)
+                || choices.contains(INPUT_TILES_KEY) || choices.contains(INPUT_TILES_SELECTED_KEY)
+                || choices.contains(INITIAL_FOCUS_KEY) || choices.contains(SHOW_NETWORK_PILL_KEY)
+                || choices.contains(SHOW_INPUTS_PILL_KEY) || choices.contains(SHOW_SETTINGS_PILL_KEY)
+                || choices.contains(POWER_ON_HOME_MODE_KEY) || choices.contains(FIRE_OS_MODE_KEY)
+                || InputCustom.hasCustom(choices)
+                || AppCustom.hasCustom(choices)
+                || RemoteKeyCustom.hasCustom(choices)
+                || choices.contains(OpenOnStart.KEY));
+    }
+
+    static String resolveFireOsStockHome(boolean fireOsInstalled, Boolean userChoice, String configuredStockHome) {
+        if (!fireOsInstalled) return configuredStockHome == null ? "" : configuredStockHome;
+        if (userChoice != null) return userChoice ? SystemSettings.FIRE_HOME_PKG : "";
+        if (configuredStockHome != null && !configuredStockHome.isEmpty()) return configuredStockHome;
+        return SystemSettings.FIRE_HOME_PKG;
+    }
+
+    static boolean resolveFireOsRestore(boolean fireOsInstalled, Boolean userChoice, boolean configuredRestore) {
+        if (!fireOsInstalled) return configuredRestore;
+        if (userChoice != null) return userChoice;
+        return true;
+    }
+
+    static String resolvePowerOnHomeMode(boolean fireOsInstalled, String chosenMode,
+                                         boolean configuredPowerOnHome, boolean configuredPowerOnAlways) {
+        if (fireOsInstalled) return POWER_ON_OFF;
+        if (POWER_ON_OFF.equals(chosenMode) || POWER_ON_LIVE_TV.equals(chosenMode)
+                || POWER_ON_ALWAYS.equals(chosenMode)) {
+            return chosenMode;
+        }
+        if (configuredPowerOnAlways) return POWER_ON_ALWAYS;
+        return configuredPowerOnHome ? POWER_ON_LIVE_TV : POWER_ON_OFF;
+    }
+
+    static String resolveAutoLiveTvPackage(boolean explicitJson, String configuredPackage,
+                                           boolean configuredInstalled, boolean vewdInstalled,
+                                           boolean amazonYacAvailable) {
+        if (explicitJson || configuredInstalled) return configuredPackage == null ? "" : configuredPackage;
+        if (vewdInstalled && amazonYacAvailable) return SystemSettings.VEWD_TV_PKG;
+        return configuredPackage == null ? "" : configuredPackage;
+    }
+
+    static String resolveAutoLiveTvInputId(boolean explicitJson, String configuredInputId,
+                                           String resolvedLiveTvPackage, boolean vewdTerrestrialPresent) {
+        if (explicitJson || (configuredInputId != null && !configuredInputId.isEmpty())) {
+            return configuredInputId == null ? "" : configuredInputId;
+        }
+        if (SystemSettings.VEWD_TV_PKG.equals(resolvedLiveTvPackage) && vewdTerrestrialPresent) {
+            return SystemSettings.VEWD_TERRESTRIAL_INPUT_ID;
+        }
+        return configuredInputId == null ? "" : configuredInputId;
     }
 
     /** The dock band opacity chosen in Launcher settings, or the theme's when none (or an out-of-range one) is saved. */
     static int chosenDockOpacity(int chosen, int theme) {
         return chosen >= 30 && chosen <= 100 ? chosen : theme;
+    }
+
+    /** User wallpapers in files/wallpapers/ plus built-in wallpapers bundled in assets/wallpapers/. */
+    static List<File> allWallpapers(Context ctx, File dir) {
+        List<File> user = dir == null ? Collections.emptyList()
+                : WallpaperRotation.images(new File(dir, "wallpapers"));
+        List<File> builtin = WallpaperRotation.images(syncBuiltinWallpapers(ctx));
+        return mergeWallpapers(user, builtin);
+    }
+
+    private static final Map<String, Integer> BUILTIN_WALLPAPER_LABELS;
+    private static final Map<String, String> LOCALIZED_BUILTIN_WALLPAPERS;
+    static {
+        Map<String, Integer> m = new HashMap<>();
+        m.put("carnival_mask.jpg", R.string.wallpaper_carnival_mask);
+        m.put("celebrations_birthday.jpg", R.string.wallpaper_celebrations_birthday);
+        m.put("children_balloons.jpg", R.string.wallpaper_children_balloons);
+        m.put("christmas_elves.jpg", R.string.wallpaper_christmas_elves);
+        m.put("christmas_gifts.jpg", R.string.wallpaper_christmas_gifts);
+        m.put("christmas_merry.jpg", R.string.wallpaper_christmas_merry);
+        m.put("christmas_nativity.jpg", R.string.wallpaper_christmas_nativity);
+        m.put("christmas_olentzero.jpg", R.string.wallpaper_christmas_olentzero);
+        m.put("christmas_santa_claus.jpg", R.string.wallpaper_christmas_santa_claus);
+        m.put("christmas_three_wise_men.jpg", R.string.wallpaper_christmas_three_wise_men);
+        m.put("christmas_tio_de_nadal.jpg", R.string.wallpaper_christmas_tio_de_nadal);
+        m.put("christmas_trees.jpg", R.string.wallpaper_christmas_trees);
+        m.put("diversity_agender.jpg", R.string.wallpaper_diversity_agender);
+        m.put("diversity_aroace.jpg", R.string.wallpaper_diversity_aroace);
+        m.put("diversity_aromantic.jpg", R.string.wallpaper_diversity_aromantic);
+        m.put("diversity_asexual.jpg", R.string.wallpaper_diversity_asexual);
+        m.put("diversity_bear.jpg", R.string.wallpaper_diversity_bear);
+        m.put("diversity_bisexual.jpg", R.string.wallpaper_diversity_bisexual);
+        m.put("diversity_demisexual.jpg", R.string.wallpaper_diversity_demisexual);
+        m.put("diversity_genderfluid.jpg", R.string.wallpaper_diversity_genderfluid);
+        m.put("diversity_genderqueer.jpg", R.string.wallpaper_diversity_genderqueer);
+        m.put("diversity_intersex.jpg", R.string.wallpaper_diversity_intersex);
+        m.put("diversity_lesbian.jpg", R.string.wallpaper_diversity_lesbian);
+        m.put("diversity_nonbinary.jpg", R.string.wallpaper_diversity_nonbinary);
+        m.put("diversity_omnisexual.jpg", R.string.wallpaper_diversity_omnisexual);
+        m.put("diversity_pansexual.jpg", R.string.wallpaper_diversity_pansexual);
+        m.put("diversity_polysexual.jpg", R.string.wallpaper_diversity_polysexual);
+        m.put("diversity_pride.jpg", R.string.wallpaper_diversity_pride);
+        m.put("diversity_rainbow.jpg", R.string.wallpaper_diversity_rainbow);
+        m.put("diversity_trans.jpg", R.string.wallpaper_diversity_trans);
+        m.put("halloween_darkness.jpg", R.string.wallpaper_halloween_darkness);
+        m.put("love_hearts.jpg", R.string.wallpaper_love_hearts);
+        m.put("men_father.jpg", R.string.wallpaper_men_father);
+        m.put("religion_catholic_procession.jpg", R.string.wallpaper_religion_catholic_procession);
+        m.put("women_breastfeeding.jpg", R.string.wallpaper_women_breastfeeding);
+        m.put("women_female_symbol.jpg", R.string.wallpaper_women_female_symbol);
+        m.put("women_mother.jpg", R.string.wallpaper_women_mother);
+        m.put("women_pregnant.jpg", R.string.wallpaper_women_pregnant);
+        BUILTIN_WALLPAPER_LABELS = Collections.unmodifiableMap(m);
+
+        Map<String, String> loc = new HashMap<>();
+        loc.put("christmas_merry.jpg", "wallpapers/christmas/merry_christmas");
+        loc.put("celebrations_birthday.jpg", "wallpapers/celebrations/birthday");
+        LOCALIZED_BUILTIN_WALLPAPERS = Collections.unmodifiableMap(loc);
+    }
+
+    static int wallpaperLabelRes(String filename) {
+        Integer id = BUILTIN_WALLPAPER_LABELS.get(filename);
+        return id != null ? id : 0;
+    }
+
+    static String wallpaperLabel(Context ctx, String filename) {
+        if (filename == null || WallpaperRotation.CHOICE_NONE.equals(filename)) {
+            return ctx.getString(R.string.wallpaper_theme_default);
+        }
+        int res = wallpaperLabelRes(filename);
+        return res != 0 ? ctx.getString(res) : filename;
+    }
+
+    static List<File> mergeWallpapers(List<File> userImages, List<File> builtinImages) {
+        List<File> merged = new ArrayList<>(userImages);
+        Set<String> seen = new HashSet<>();
+        for (File f : userImages) seen.add(f.getName());
+        for (File f : builtinImages) {
+            if (seen.add(f.getName())) merged.add(f);
+        }
+        return merged;
+    }
+
+    private static File syncBuiltinWallpapers(Context ctx) {
+        File target = new File(ctx.getFilesDir(), "builtin_wallpapers");
+        SharedPreferences prefs = ctx.getSharedPreferences(SETTINGS_NAME, Context.MODE_PRIVATE);
+        long stamp = CustomArt.packageUpdateStamp(ctx);
+        String configuredLocale = prefs.getString(LOCALE_KEY, "");
+        Locale systemLocale = Resources.getSystem().getConfiguration().getLocales().isEmpty()
+                ? Locale.getDefault() : Resources.getSystem().getConfiguration().getLocales().get(0);
+        String activeLocaleKey = effectiveLocaleKey(configuredLocale, systemLocale);
+        boolean appChanged = !target.isDirectory() || stamp <= 0
+                || prefs.getLong("builtin_wallpapers_stamp", -1L) != stamp;
+        boolean localeChanged = !activeLocaleKey.equals(prefs.getString("builtin_wallpapers_locale", ""));
+        if (!appChanged && !localeChanged) {
+            return target;
+        }
+        AssetManager assets = ctx.getAssets();
+        if (!target.isDirectory() && !target.mkdirs()) return target;
+        byte[] buffer = new byte[8192];
+        if (appChanged) {
+            String[] names;
+            try {
+                names = assets.list("wallpapers");
+            } catch (IOException e) {
+                return target;
+            }
+            if (names != null) {
+                Set<String> expected = new HashSet<>(LOCALIZED_BUILTIN_WALLPAPERS.keySet());
+                for (String name : names) {
+                    if (CustomArt.hasImageExtension(name)) expected.add(name);
+                }
+                CustomArt.pruneStaleFiles(target, expected);
+                for (String name : names) {
+                    if (CustomArt.hasImageExtension(name)) {
+                        CustomArt.copyAssetFile(assets, "wallpapers/" + name, new File(target, name), buffer);
+                    }
+                }
+            }
+        }
+        for (Map.Entry<String, String> entry : LOCALIZED_BUILTIN_WALLPAPERS.entrySet()) {
+            try {
+                String[] variants = assets.list(entry.getValue());
+                if (variants == null || variants.length == 0) continue;
+                String picked = resolveLocalizedWallpaperFile(
+                        configuredLocale, systemLocale, new HashSet<>(Arrays.asList(variants)));
+                if (picked != null) {
+                    CustomArt.copyAssetFile(assets, entry.getValue() + "/" + picked,
+                            new File(target, entry.getKey()), buffer);
+                }
+            } catch (IOException e) {
+                Log.w(TAG, "could not unpack localized wallpaper " + entry.getKey() + ": " + e.getMessage());
+            }
+        }
+        SharedPreferences.Editor editor = prefs.edit().putString("builtin_wallpapers_locale", activeLocaleKey);
+        if (stamp > 0) editor.putLong("builtin_wallpapers_stamp", stamp);
+        editor.apply();
+        return target;
+    }
+
+    static String effectiveLocaleKey(String configuredLocale, Locale systemLocale) {
+        Locale locale = LauncherLocale.parse(configuredLocale);
+        if (locale == null) locale = systemLocale != null ? systemLocale : Locale.ENGLISH;
+        return locale.toLanguageTag();
+    }
+
+    /** Picks the closest {@code <lang>.jpg} variant for the active Onyx or system locale, falling back to {@code en.jpg}. */
+    static String resolveLocalizedWallpaperFile(String configuredLocale, Locale systemLocale,
+                                                Set<String> availableFiles) {
+        if (availableFiles == null || availableFiles.isEmpty()) return null;
+        Locale locale = LauncherLocale.parse(configuredLocale);
+        if (locale == null) locale = systemLocale != null ? systemLocale : Locale.ENGLISH;
+        String lang = normalizeIsoLang(locale.getLanguage());
+        String script = locale.getScript();
+        String country = locale.getCountry();
+
+        List<String> candidates = new ArrayList<>();
+        if (!lang.isEmpty() && !script.isEmpty() && !country.isEmpty()) {
+            candidates.add(lang + "-" + script + "-" + country + ".jpg");
+        }
+        if (!lang.isEmpty() && !script.isEmpty()) {
+            candidates.add(lang + "-" + script + ".jpg");
+        }
+        if (!lang.isEmpty() && !country.isEmpty()) {
+            candidates.add(lang + "-" + country + ".jpg");
+        }
+        if (!lang.isEmpty()) {
+            candidates.add(lang + ".jpg");
+            if ("zh".equals(lang)) {
+                candidates.add("TW".equalsIgnoreCase(country) || "HK".equalsIgnoreCase(country)
+                        || "MO".equalsIgnoreCase(country) || "Hant".equalsIgnoreCase(script)
+                        ? "zh-TW.jpg" : "zh-CN.jpg");
+            }
+        }
+        candidates.add("en.jpg");
+
+        Map<String, String> byLower = new HashMap<>();
+        for (String name : availableFiles) byLower.put(name.toLowerCase(Locale.ROOT), name);
+        for (String c : candidates) {
+            String hit = byLower.get(c.toLowerCase(Locale.ROOT));
+            if (hit != null) return hit;
+        }
+        List<String> sorted = new ArrayList<>(availableFiles);
+        Collections.sort(sorted);
+        return sorted.get(0);
+    }
+
+    private static String normalizeIsoLang(String lang) {
+        if (lang == null) return "";
+        String lower = lang.toLowerCase(Locale.ROOT);
+        if ("he".equals(lower)) return "iw";
+        if ("id".equals(lower)) return "in";
+        return lower;
     }
 
     private static String fileStamp(File file) {
@@ -949,10 +1377,37 @@ final class Config {
     private static int color(JSONObject o, String key, int fallback) {
         Object v = o.opt(key);
         if (!(v instanceof String)) return fallback;
+        return parseBgColor((String) v, fallback);
+    }
+
+    static int parseBgColor(String raw, int fallback) {
+        if (raw == null) return fallback;
+        String trimmed = raw.trim();
+        if (trimmed.isEmpty()) return fallback;
+        if (trimmed.startsWith("#")) {
+            String hex = trimmed.substring(1);
+            if (hex.length() == 6 || hex.length() == 8) {
+                try {
+                    long parsed = Long.parseLong(hex, 16);
+                    return (int) (parsed | 0xFF000000L);
+                } catch (NumberFormatException ignored) {
+                    return fallback;
+                }
+            }
+        }
         try {
-            int c = Color.parseColor(((String) v).trim());
-            return c | 0xFF000000;   // always opaque: the window behind is black anyway
-        } catch (IllegalArgumentException e) {
+            return Color.parseColor(trimmed) | 0xFF000000;
+        } catch (RuntimeException e) {
+            return fallback;
+        }
+    }
+
+    static float parseFocusScale(String raw, float fallback) {
+        if (raw == null || raw.trim().isEmpty()) return fallback;
+        try {
+            float f = Float.parseFloat(raw.trim());
+            return f < 1.0f || f > 2.5f ? fallback : f;
+        } catch (NumberFormatException e) {
             return fallback;
         }
     }

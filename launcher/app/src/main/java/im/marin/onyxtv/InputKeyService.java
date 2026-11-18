@@ -31,10 +31,17 @@ public class InputKeyService extends AccessibilityService {
     private boolean consumeVolumeKeys;
     /** Stops key filtering while a game controller is connected; null unless gamepad_passthrough and key_filter. */
     private GamepadPassthrough gamepads;
+    private long loadedSettingsRevision = -1L;
 
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
+        reload();
+    }
+
+    private void reload() {
+        loadedSettingsRevision = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
+                .getLong(Config.SETTINGS_REVISION_KEY, 0L);
         // From config.xml or a theme's config.json; theme.sh rebinds this service after a push.
         Config config = Config.load(this);
         // restore_key_services: note that this helper runs, so Home can put it back after a force stop.
@@ -62,6 +69,11 @@ public class InputKeyService extends AccessibilityService {
 
     @Override
     protected boolean onKeyEvent(KeyEvent event) {
+        RemoteKeyCustom.KeyCaptureHandler capture = RemoteKeyCustom.activeCapture;
+        if (capture != null && capture.onKeyEvent(event)) return true;
+        long rev = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
+                .getLong(Config.SETTINGS_REVISION_KEY, 0L);
+        if (rev != loadedSettingsRevision) reload();
         if (consumeVolumeKeys && VolumeKeys.handle(this, event)) return true;
         // A scancode entry is more specific than any keycode, so it goes first.
         if (RemoteKeys.handle(this, event, appScancodes.get(event.getScanCode()),

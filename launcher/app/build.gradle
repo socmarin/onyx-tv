@@ -13,8 +13,8 @@ android {
         applicationId providers.gradleProperty('launcherApplicationId').getOrElse('im.marin.onyxtv')
         minSdk 26
         targetSdk 34
-        versionCode 1
-        versionName '2.0.0'
+        versionCode 3
+        versionName '2.1.0'
     }
 
     buildTypes {
@@ -39,6 +39,61 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+abstract class SyncOnyxAssetsTask extends DefaultTask {
+    @InputDirectory
+    @PathSensitive(PathSensitivity.RELATIVE)
+    abstract DirectoryProperty getWallpapersDir()
+
+    @InputDirectory
+    @PathSensitive(PathSensitivity.RELATIVE)
+    abstract DirectoryProperty getInputBannersDir()
+
+    @OutputDirectory
+    abstract DirectoryProperty getOutputDir()
+
+    @TaskAction
+    void sync() {
+        File outRoot = outputDir.get().asFile
+        project.delete(outRoot)
+        File wpOut = new File(outRoot, 'wallpapers')
+        File inOut = new File(outRoot, 'input_banners')
+        wpOut.mkdirs()
+        inOut.mkdirs()
+
+        File wpSrc = wallpapersDir.get().asFile
+        wpSrc.eachFileRecurse { File f ->
+            if (!f.isFile()) return
+            String lower = f.name.toLowerCase(Locale.ROOT)
+            if (!(lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png') || lower.endsWith('.webp'))) return
+            String rel = wpSrc.toPath().relativize(f.toPath()).toString().replace(File.separatorChar, (char) '/')
+            String[] parts = rel.split('/')
+            File dst = parts.length == 2 ? new File(wpOut, "${parts[0]}_${parts[1]}") : new File(wpOut, rel)
+            dst.parentFile.mkdirs()
+            java.nio.file.Files.copy(f.toPath(), dst.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        }
+
+        File inSrc = inputBannersDir.get().asFile
+        inSrc.eachFile { File f ->
+            if (!f.isFile()) return
+            String lower = f.name.toLowerCase(Locale.ROOT)
+            if (!(lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png') || lower.endsWith('.webp'))) return
+            java.nio.file.Files.copy(f.toPath(), new File(inOut, f.name).toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        }
+    }
+}
+
+def syncOnyxAssets = tasks.register('syncOnyxAssets', SyncOnyxAssetsTask) {
+    wallpapersDir.set(layout.projectDirectory.dir('../../img/wallpapers'))
+    inputBannersDir.set(layout.projectDirectory.dir('../../img/banners'))
+}
+
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(syncOnyxAssets, { it.outputDir })
     }
 }
 
